@@ -4,7 +4,23 @@ import re
 from urllib.parse import quote
 from .media import identity
 from .net import Http
-from .trakt import media_from_trakt
+from .trakt import media_from_trakt, SyncDeferred
+from . import preferences as prefs
+
+
+def visible_episodes(items):
+    if not prefs.get('hide_unaired'):
+        return items
+    now = datetime.datetime.now(datetime.timezone.utc)
+    result = []
+    for item in items:
+        try:
+            aired = datetime.datetime.fromisoformat((item.get('first_aired') or '').replace('Z', '+00:00'))
+            if aired <= now:
+                result.append(item)
+        except (TypeError, ValueError):
+            pass
+    return result
 
 
 class Catalog:
@@ -12,11 +28,16 @@ class Catalog:
         self.db, self.trakt = db, trakt
         self.http = http or Http('https://v3-cinemeta.strem.io', 'Cinemeta')
 
+    def get(self, path):
+        if self.trakt and self.trakt.should_defer() is True:
+            raise SyncDeferred()
+        return self.http.request('GET', path)
+
     def search(self, query, kind):
         if self.trakt and self.trakt.client_id:
             return [dict(r[kind], catalog_type=kind, catalog='trakt') for r in self.trakt.search(query, kind) if kind in r]
         media_type = 'series' if kind == 'show' else 'movie'
-        data = self.http.request('GET', 'catalog/{}/top/search={}.json'.format(media_type, quote(query, safe='')))
+        data = self.get('catalog/{}/top/search={}.json'.format(media_type, quote(query, safe='')))
         result = []
         for item in data.get('metas', [])[:30]:
             imdb = item.get('imdb_id') or item.get('id', '')
@@ -29,39 +50,40 @@ class Catalog:
 
     def episodes(self, show):
         cache_key = 'catalog_episodes:' + str(show['ids'].get('trakt') or show['ids'].get('imdb'))
-        cached = self.db.get(cache_key, max_age=3600)
+        cached = self.db.get(cache_key, max_age=prefs.get('catalog_ttl') * 60)
         if cached is not None:
-            return cached
+            return visible_episodes(cached)
         result = []
         if show.get('catalog') == 'trakt':
-            seasons = self.trakt.call('GET', '/shows/{}/seasons'.format(show['ids']['trakt']), authenticated=False)
+            key = 'catalog_detail:seasons:' + str(show['ids']['trakt'])
+            seasons = self.db.get(key, max_age=prefs.get('catalog_ttl') * 60)
+            if seasons is None:
+                seasons = self.trakt.call('GET', '/shows/{}/seasons'.format(show['ids']['trakt']), authenticated=False)
+                self.db.put(key, seasons)
             # Fetch episode details for a season only when it is opened.
             return [{'season': s['number'], 'trakt_season': True} for s in seasons if s.get('number', 0) >= 0]
-        data = self.http.request('GET', 'meta/series/{}.json'.format(show['ids']['imdb']))
-        now = datetime.datetime.now(datetime.timezone.utc)
+        data = self.get('meta/series/{}.json'.format(show['ids']['imdb']))
         for item in data.get('meta', {}).get('videos', []):
             season, number = item.get('season'), item.get('episode', item.get('number'))
             if not isinstance(season, int) or not isinstance(number, int):
                 continue
             aired = item.get('released') or item.get('firstAired', '')
-            try:
-                if datetime.datetime.fromisoformat(aired.replace('Z', '+00:00')) > now:
-                    continue
-            except (ValueError, TypeError):
-                continue
             imdb = item.get('imdb_id', '')
             result.append({'season': season, 'number': number, 'title': item.get('name', ''), 'first_aired': aired,
                            'ids': {'imdb': imdb} if re.fullmatch(r'tt\d+', imdb) else {}})
         self.db.put(cache_key, result)
-        return result
+        return visible_episodes(result)
 
     def season(self, show, number, episodes):
         if show.get('catalog') != 'trakt':
             return [e for e in episodes if e['season'] == number]
-        items = self.trakt.call('GET', '/shows/{}/seasons/{}'.format(show['ids']['trakt'], number),
-                                params={'extended': 'full'}, authenticated=False)
-        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        return [dict(e, season=number) for e in items if e.get('first_aired') and e['first_aired'] <= now]
+        key = 'catalog_detail:season:{}:{}'.format(show['ids']['trakt'], number)
+        items = self.db.get(key, max_age=prefs.get('catalog_ttl') * 60)
+        if items is None:
+            items = self.trakt.call('GET', '/shows/{}/seasons/{}'.format(show['ids']['trakt'], number),
+                                    params={'extended': 'full'}, authenticated=False)
+            self.db.put(key, items)
+        return visible_episodes([dict(e, season=number) for e in items])
 
     @staticmethod
     def media(title, episode=None):

@@ -12,7 +12,8 @@ from .net import ApiError
 from .torbox import TorBox
 from .emby import Emby
 from .display import configure as configure_display
-from .trakt import Trakt, queue_progress
+from .trakt import Trakt, SyncDeferred
+from . import filtering, preferences as prefs
 
 BASE = 'plugin://plugin.video.luma/'
 
@@ -84,6 +85,9 @@ def find_media(db, key):
     for item in library(db):
         if item['key'] == key:
             return item
+    cached = db.get('catalog_media:' + key)
+    if cached:
+        return cached
     raise ValueError('This item is no longer available. Refresh your library.')
 
 
@@ -103,10 +107,11 @@ def play(handle, key):
             db.save_progress(media, history['position'], history['duration'], False, history.get('updated'))
         key = media['key']
         sources = media['sources']
-    allow_dv = config.setting('allow_dv') == 'true'
-    lossless = config.setting('prefer_lossless') == 'true'
-    sources.sort(key=lambda s: source_rank(s, allow_dv, lossless), reverse=True)
-    if len(sources) > 1:
+    allow_dv = prefs.get('allow_dv')
+    sources = filtering.apply(sources, media['type'])
+    if not sources:
+        raise ValueError('No ready sources match your Sort & Filter settings.')
+    if len(sources) > 1 and prefs.get('movie_playstyle' if media['type'] == 'movie' else 'episode_playstyle') == 'select':
         labels = [xbmcgui.ListItem(label='{} · {} · {} · {:.1f} GB'.format(
             s['traits']['resolution'] or '?', s['traits']['hdr'], s['traits']['audio'], s['size'] / 1e9), label2=s['name']) for s in sources]
         selected = xbmcgui.Dialog().select('Choose source · preferred formats first', labels, useDetails=True)
@@ -122,7 +127,10 @@ def play(handle, key):
             return
     history = next((i for i in home_rows(db)['continue'] if i['key'] == key), None)
     position = 0
-    if history:
+    resume_style = prefs.get('resume_style')
+    if history and resume_style == 'resume':
+        position = history['position']
+    elif history and resume_style == 'ask':
         selected = xbmcgui.Dialog().contextmenu(['Resume from {:02d}:{:02d}'.format(int(history['position']) // 60, int(history['position']) % 60), 'Play from beginning'])
         if selected < 0:
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
@@ -164,6 +172,7 @@ def connect_trakt(db):
                     return
             try:
                 trakt.device_token(code['device_code'])
+                db.clear_cache(('catalog:', 'menu_object:', 'catalog_media:', 'trakt_lists', 'trakt_snapshot', 'show_progress_'))
                 db.put('trakt_status', 'Connected · syncing your history')
                 db.put('request_sync', True)
                 notify('Trakt connected')
@@ -284,10 +293,26 @@ def home():
 def run():
     params = dict(parse_qsl(sys.argv[2][1:])) if len(sys.argv) > 2 else {}
     handle = int(sys.argv[1]) if len(sys.argv) > 1 else -1
-    action = params.get('action', 'home')
+    action = params.get('action', 'menu' if prefs.get('startup') == 'menu' else 'home')
     try:
         if action == 'play':
             play(handle, params['key'])
+        elif action == 'catalog_play':
+            from .directory import playback_media
+            from .library import match_media
+            media = playback_media(config.store(), params['key'])
+            ready = match_media(media, library(config.store()))
+            if ready:
+                config.store().identify(ready['key'], {k: media[k] for k in ('title', 'year', 'overview', 'episode_title', 'trakt', 'premiered') if k in media})
+                media = dict(media, key=ready['key'], sources=ready['sources'], show_key=ready.get('show_key', ''))
+            config.store().put('catalog_media:' + media['key'], media)
+            play(handle, media['key'])
+        elif action == 'menu':
+            from .directory import render
+            render(handle, params)
+        elif action == 'tool':
+            from .toolbox import run as run_tool
+            run_tool(params['name'])
         elif action == 'identify':
             identify(params['key'])
         elif action == 'search':
@@ -298,13 +323,23 @@ def run():
             home()
         else:
             browse(handle, action, params)
-    except (ApiError, ValueError) as exc:
-        if action == 'play':
+    except SyncDeferred:
+        if action in ('play', 'catalog_play'):
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+        elif action == 'menu':
+            xbmcplugin.endOfDirectory(handle, succeeded=False, cacheToDisc=False)
+        notify('Metadata requests wait until playback stops.')
+    except (ApiError, ValueError) as exc:
+        if action in ('play', 'catalog_play'):
+            xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+        elif action == 'menu':
+            xbmcplugin.endOfDirectory(handle, succeeded=False, cacheToDisc=False)
         xbmcgui.Dialog().ok('Luma', str(exc))
     except Exception:
-        if action == 'play':
+        if action in ('play', 'catalog_play'):
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+        elif action == 'menu':
+            xbmcplugin.endOfDirectory(handle, succeeded=False, cacheToDisc=False)
         # Kodi debug logs are frequently shared; never log raw API exceptions.
         xbmc.log('Luma: operation failed in {}'.format(action), xbmc.LOGERROR)
         xbmcgui.Dialog().ok('Luma', 'Unable to complete this action. Refresh your library and try again.')

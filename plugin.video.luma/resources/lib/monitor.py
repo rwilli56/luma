@@ -7,6 +7,7 @@ from .net import ApiError
 from .torbox import TorBox
 from .trakt import SyncDeferred, Trakt, queue_progress
 from .emby import Emby, queue_emby
+from . import preferences as prefs
 
 class PlaybackTracker(xbmc.Player):
     def __init__(self, db):
@@ -34,7 +35,7 @@ class PlaybackTracker(xbmc.Player):
         try:
             self.position, self.duration = self.getTime(), self.getTotalTime()
             if self.duration > 0:
-                completed = self.position / self.duration >= 0.9
+                completed = self.position / self.duration >= prefs.get('watched_percent') / 100
                 self.db.save_progress(self.current, self.position, self.duration, completed)
                 self.last_checkpoint = time.monotonic()
         except RuntimeError:
@@ -42,7 +43,7 @@ class PlaybackTracker(xbmc.Player):
 
     def finish(self, ended=False):
         if self.current and self.duration > 0:
-            completed = ended or self.position / self.duration >= 0.9
+            completed = ended or self.position / self.duration >= prefs.get('watched_percent') / 100
             position = self.duration if ended else self.position
             updated = time.time()
             self.db.save_progress(self.current, position, self.duration, completed, updated=updated)
@@ -57,7 +58,7 @@ class PlaybackTracker(xbmc.Player):
     def onPlayBackPaused(self):
         self.checkpoint()
         if self.current and self.duration:
-            queue_progress(self.db, self.current, self.position, self.duration, self.position / self.duration >= .9)
+            queue_progress(self.db, self.current, self.position, self.duration, self.position / self.duration >= prefs.get('watched_percent') / 100)
 
     def onPlayBackStopped(self):
         self.finish()
@@ -73,7 +74,8 @@ def sync(db):
     trakt = Trakt(db, config.setting('trakt_client_id'), config.setting('trakt_client_secret'), should_defer=xbmc.Player().isPlaying)
     if not trakt.connected or db.get('auth_pending', False, max_age=900):
         return
-    trakt.flush()
+    if prefs.get('trakt_scrobble'):
+        trakt.flush()
     # Resolve IDs only for explicitly identified series; no filename guesses are synced.
     budget = 8
     history = {h['key']: h for h in db.history()}
@@ -108,6 +110,15 @@ def run():
             if player.current and now - player.last_checkpoint >= 10:
                 player.checkpoint()
         else:
+            maintenance = db.get('request_maintenance')
+            if maintenance:
+                from .toolbox import maintenance as maintain
+                try:
+                    maintain(db, maintenance)
+                except Exception:
+                    db.put('library_status', 'Maintenance did not finish. Reopen Luma and review settings.')
+                db.put('request_maintenance', None)
+                next_library = next_sync = 0
             if now >= next_library or db.get('request_refresh', False):
                 db.put('request_refresh', False)
                 try:
@@ -132,7 +143,7 @@ def run():
                 else:
                     db.put('library_emby', [])
                 db.put('ui_revision', time.time())
-                next_library = now + 300
+                next_library = now + prefs.get('library_interval') * 60
             if now >= next_sync or db.get('request_sync', False):
                 db.put('request_sync', False)
                 try:

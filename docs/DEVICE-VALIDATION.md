@@ -26,6 +26,19 @@ These are pending device/account checks; automated fixtures do not establish liv
 - Simulate duplicate magnets, no cached hits, cache expiry, TorBox rate limiting and account limits. No automatic uncached download should start through Search. Add a link remains the explicit download path.
 - Stop a searched episode, refresh the TorBox library and restart Kodi. Verify its title, exact episode IDs and local resume survive the refresh. Confirm no source searches run during video playback.
 
+## Seren-style navigation and settings (0.3.0)
+
+- Open Luma from Video add-ons and verify the main menu appears first. Compare Discover Movies, Discover TV Shows, My Movies, My Shows, My Files, Search and Tools against [the coverage map](SEREN-MENUS-AND-SETTINGS.md). Home Dashboard must open the existing visual home.
+- Browse movie and show charts, genres, years, networks, typed public lists and actor credits with your Trakt Client ID. Open both a private own list and a liked list after login. Compare the first and second pages against Trakt; no repeated first pages or cross-type list items.
+- Remove the Trakt Client ID temporarily: verify Popular/Genres/Years and title search still work through Cinemeta; other charts report their actual setup requirement. Confirm Finish Watching and local watched history still work offline.
+- Browse a show's seasons into episodes, play a movie directly from discovery, and play an episode from Upcoming Episodes after its release. Confirm the exact movie/episode IDs reach tracking and that already-present library sources are reused.
+- Test General → Opening screen, page size, search history, specials/unaired visibility, local watched filtering and Next Up title sorting. Check that saved title queries work when reopened and when moving to the next result page.
+- Test every source filter against named fixtures, including a season pack whose total exceeds the per-episode limit but whose requested file does not. Reverse minimum/maximum resolution and verify a clear settings error. Test both movie/episode automatic source selection and each resume style.
+- Test 1/4 scraper workers, changed dispatch timeout, packs disabled, provider metadata reuse and fresh TorBox cache checks. Change backend provider settings and confirm cached provider results are invalidated.
+- Stop at the configured watched percentage and verify local completion and Trakt behaviour. Disable outbound Trakt progress and confirm no outgoing progress/history requests start, while imported menus still work.
+- Use Clear Cache / Clear Local Torrent Cache / Clear Search History and each Trakt sync tool. Confirm local resume, mappings and unsent updates survive ordinary cache/sync maintenance. Test Wipe Addon Data only with a disposable Kodi profile; declining confirmation must preserve all data, and accepting must reset local data/settings without remote deletions.
+- Verify all settings labels, choices, slider bounds, help text, password fields and operational buttons in Kodi 21.3. Automated XML checks do not replace this native settings check.
+
 ## Frame-rate and HDR matrix
 
 Set Luma's automatic frame-rate matching on. Before each test, choose a different GUI refresh rate so a successful switch is observable. Verify Kodi's settings show **On start/stop** and **Sync playback to display: Off**. Then verify the actual output with Kodi's player diagnostics and the TV's signal information where available. A multiple of the content frame rate may be selected if the exact rate is not exposed.

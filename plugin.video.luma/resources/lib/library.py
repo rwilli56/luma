@@ -45,6 +45,10 @@ def match_media(remote, items):
         if item['type'] != remote['type'] or item.get('season') != remote.get('season') or item.get('episode') != remote.get('episode'):
             continue
         local_ids, remote_ids = item.get('trakt', {}), remote.get('trakt', {})
+        known_local, known_remote = local_ids.get('ids', {}), remote_ids.get('ids', {})
+        shared = {k for k in known_local.keys() & known_remote.keys() if known_local[k] is not None and known_remote[k] is not None}
+        if any(str(known_local[k]) != str(known_remote[k]) for k in shared):
+            continue
         if local_ids.get('ids', {}).get('trakt') and local_ids.get('ids', {}).get('trakt') == remote_ids.get('ids', {}).get('trakt'):
             return item
         # Exact normalized titles only. Conflicting known years are never merged.
@@ -54,6 +58,7 @@ def match_media(remote, items):
 
 
 def home_rows(db):
+    from . import preferences as prefs
     items = library(db)
     by_key = {item['key']: item for item in items}
     local = db.history()
@@ -114,7 +119,8 @@ def home_rows(db):
                 next_items.append(dict(candidate, updated=last['updated']))
     from .artwork import cached_path
     artwork = db.cache_prefix('art:')
-    rows = {'continue': continue_items, 'next': sorted(next_items, key=lambda i: i.get('updated', 0), reverse=True),
+    next_items = sorted(next_items, key=lambda i: i['title'].casefold()) if prefs.get('next_sort') == 'title' else sorted(next_items, key=lambda i: i.get('updated', 0), reverse=True)
+    rows = {'continue': continue_items, 'next': next_items,
             'shows': sorted(series.values(), key=lambda i: i.get('updated', 0), reverse=True)}
     for row in rows.values():
         for item in row:

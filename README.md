@@ -2,7 +2,7 @@
 
 An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-friendly home screen. Targets **Kodi 21 Omega**, Google TV Streamer (4K), and a Samsung S90F display.
 
-**Status: 0.2.0 development alpha.** Adds movie/episode search with optional installed CocoScrapers and Magneto/POV providers and TorBox cache checks. Live provider searches, TorBox/Trakt/Emby accounts and a Streamer device were not available in this workspace; playback, remote navigation, HDR output, audio and HDMI mode changes need the device checks in [the validation guide](docs/DEVICE-VALIDATION.md). Repository browsing and the 0.1.1 home screen have been confirmed on Kodi 21.3 for Windows.
+**Status: 0.3.0 development alpha.** Adds Seren-style main/discovery/personal/search/tools menus and reorganized, functional settings. Luma now opens the main menu; the visual homepage is available as **Home Dashboard**. See the [menu coverage and settings review](docs/SEREN-MENUS-AND-SETTINGS.md) for exact coverage and differences. Live account/provider tests and Google TV playback still need the checks in [the validation guide](docs/DEVICE-VALIDATION.md). Repository browsing and the 0.1.1 home screen were confirmed on Kodi 21.3 for Windows.
 
 ## Install
 
@@ -17,10 +17,10 @@ An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-f
 
 For a direct local installation without the repository:
 
-1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.2.0.zip` from this workspace.
+1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.3.0.zip` from this workspace.
 2. Transfer the ZIP to a folder or network share Kodi can access. In Kodi, enable **Settings → System → Add-ons → Unknown sources**, then choose **Add-ons → Install from zip file**.
-3. Open **Video add-ons → Luma → Settings → Accounts and playback settings**. Enter your TorBox API key from your dashboard.
-4. Choose **Refresh**. Open **TorBox library** to browse and play your files. New transfers can take time to become ready; refresh after they finish.
+3. Open **Luma → Tools → Open Settings Menu → Accounts**. Enter your TorBox API key from your dashboard.
+4. Open **My Files → TorBox** to browse and play your files after the idle service refreshes them. The visual **Home Dashboard** also has a Refresh button. New transfers can take time to become ready.
 5. Add Luma to Kodi favourites for quick access. Its home is an add-on window; it does not replace your Kodi skin or the Google TV launcher.
 
 Kodi installs Requests from its official add-on repository for provider compatibility. Search backends are installed separately below. Python 3.8+ is the code compatibility target; local tests ran under Python 3.13. Estuary is the first skin to validate.
@@ -31,8 +31,9 @@ Kodi installs Requests from its official add-on repository for provider compatib
 - User-added magnet and HTTP(S) file links, submitted to TorBox for downloading.
 - Movie and TV title search, season/episode selection, installed CocoScrapers and Magneto/POV provider adapters, duplicate-hash removal, and a TorBox-cached source chooser.
 - Fresh TorBox playback links requested at play time; direct original-file playback through Kodi VideoPlayer.
-- Continue watching, Next up, and recently watched series. Home rows show the first 20 entries; **See all** opens the complete saved list.
-- Local SQLite resume storage, checkpoints every 10 seconds, and a resume/from-beginning prompt. A normal stop can lose up to the last checkpoint interval. Natural ending or 90% progress marks an item watched.
+- Seren-style discovery, personal lists, actor search, genres, years, networks and maintenance menus; cached metadata and paginated lists. Most charts need a Trakt application Client ID; personal lists need Trakt sign-in.
+- Continue watching, Next up, and recently watched series in **Home Dashboard**. Home rows show the first 20 entries; **See all** opens the complete saved list.
+- Local SQLite resume storage, checkpoints every 10 seconds, and configurable resume behaviour. A normal stop can lose up to the last checkpoint interval. Natural ending or the configured completion threshold (90% by default) marks an item watched.
 - Optional Trakt device sign-in, rotating-token refresh, paused progress, watched history, and an offline outbox.
 - Optional local Emby browsing, direct original-file streams, imported resume points, and deferred server progress updates.
 - A compatibility-first source chooser. The S90F defaults prefer common audio formats and HDR10+/HDR10 over filenames indicating Dolby Vision without an HDR10 fallback. Filename badges are hints; Kodi reads actual stream metadata.
@@ -41,10 +42,10 @@ This version has no automatic next-episode playback, external subtitle fetching,
 
 ## Search providers
 
-1. Update the **Luma video add-on** to **0.2.0** from Luma Repository. The repository add-on stays at 0.1.1.
+1. Update the **Luma video add-on** to **0.3.0** from Luma Repository. The repository add-on stays at 0.1.1.
 2. Install **CocoScrapers Module** from [CocoJoe's repository](https://cocojoe2411.github.io/), or **POV** from [kodifitzwell's repository](https://kodifitzwell.github.io/repo/). Either backend is sufficient; you can use both. Current **Magneto delegates to POV**, so a separate Magneto installation is not needed.
-3. In Luma, open **Settings → Search provider settings**, choose the installed backend and enable its torrent providers. Luma respects those switches. You can turn an entire backend off under **Accounts and playback settings → Search**. Provider-specific credentials, if required by an individual provider, belong in its own settings. Luma's TorBox key is used only by Luma's TorBox client.
-4. Choose **Search** on Luma's home screen, select Movies or TV series, enter a title and confirm the correct match. For series, choose an aired season and episode.
+3. Open **Tools → Provider Tools → Manage Provider Packages**, choose the installed backend and enable its torrent providers. Luma respects those switches. You can turn an entire backend off under **Tools → Open Settings Menu → Providers**. Provider-specific credentials, if required by an individual provider, belong in its own settings. Luma's TorBox key is used only by Luma's TorBox client.
+4. Choose **Search** on Luma's main menu and select movies or shows. Browse a matching show into its seasons and episodes. The visual dashboard's Search button also offers title search.
 5. Select a **TorBox-cached source**. The list shows filename hints for resolution, HDR, audio and size, sorted using the S90F playback preferences. A selected season pack is checked for the exact requested episode; multiple matching video files open a file chooser. Kodi then receives a fresh original-file playback URL.
 
 Opening Continue watching or Next up searches providers when no ready local source exists. Library items also have **Find sources** in their context menu. Search is user initiated and disabled while a video is playing.
@@ -53,7 +54,7 @@ With a Trakt application Client ID configured, title and episode metadata comes 
 
 Adapters were checked against **CocoScrapers 1.0.45**, **POV 6.11.03** and the **Magneto 6.11.01** wrapper. Their current `sources(data, hostDict)` and optional pack interfaces are used directly. These third-party interfaces can change. Provider code is not included in Luma's MIT distribution, and a provider returning zero results may represent an upstream outage or filtering rather than a successful empty search.
 
-For the Streamer, at most four provider tasks run at once. A 20-second dispatch budget stops new tasks; active third-party requests must finish before source selection, and may exceed that budget. Cancellation returns immediately and stops dispatch; a request already in flight may finish. Up to 1,000 preferred unique hashes are checked in batches of 100. TorBox cache status is checked before selection and cached-only creation is requested again when adding the torrent. Cache status can change and account limits still apply. Uncached results are excluded; use **Add a link** to start a download explicitly. Hoster and HTTP results returned by providers are not resolved in this version.
+For the Streamer, at most four provider tasks run at once. The default 20-second dispatch budget stops new tasks; active third-party requests must finish before source selection, and may exceed that budget. These limits are configurable under **Scraping**. Cancellation returns immediately and stops dispatch; a request already in flight may finish. Provider metadata can be reused for 15 minutes, but TorBox availability is checked afresh. Up to 1,000 preferred unique hashes are checked in batches of 100. Cached-only creation is requested again when adding the torrent. Cache status can change and account limits still apply. Uncached results are excluded; use **My Files → Add a link** to start a download explicitly. Hoster and HTTP results returned by providers are not resolved in this version.
 
 ## Frame-rate matching
 
@@ -64,7 +65,7 @@ For the Streamer, at most four provider tasks run at once. A 20-second dispatch 
 | Adjust display refresh rate | On start/stop |
 | Sync playback to display | Off |
 
-These are persistent, Kodi-wide settings. Disable Luma's option to manage them manually. Luma reports setup failures and exposes the current settings in **Settings → Playback and connection status**. That display reports configuration, not proof of a physical HDMI mode switch.
+These are persistent, Kodi-wide settings. Disable Luma's option to manage them manually. Luma reports setup failures and exposes the current settings under **Tools → Open Settings Menu → Shortcuts → Playback and connection status**. That display reports configuration, not proof of a physical HDMI mode switch.
 
 Kodi receives the original stream without an invented frame rate. Its native demuxer and display system choose the available HDMI mode. This applies to both TorBox and Emby playback. Refresh switching depends on the modes Android, the TV and any intervening AVR expose; an exact 23.976 Hz output cannot be guaranteed by an add-on.
 
@@ -74,7 +75,7 @@ Kodi documents the difference between refresh switching and changing playback sp
 
 1. Create your own application in the [Trakt developer portal](https://developer.trakt.tv/). Follow its current app registration requirements.
 2. Enter the application's **Client ID** in Luma's account settings. New device-flow applications start with the optional legacy Client Secret field empty; only use that advanced field if your existing application requires it.
-3. Select **Settings → Connect Trakt**. On your phone/computer, open the verification URL shown by Trakt and enter the displayed code.
+3. Select **Tools → Open Settings Menu → Accounts → Connect Trakt**. On your phone/computer, open the verification URL shown by Trakt and enter the displayed code.
 4. Trakt sync runs while Kodi is idle. It imports paused playback and all watched series, fetching show-progress details in batches of eight so a large history does not trigger one request burst. The first full Next up population may take several idle cycles.
 5. For a new filename-only library title, long-press it in the library and select **Identify on Trakt**. Confirm the movie or series. Luma resolves episode IDs in the background. It never submits guessed title matches as watched history.
 
@@ -88,7 +89,7 @@ Trakt artwork is downloaded to a local cache before display, with a 2 MB per-ima
 
 ## Connect a local Emby server
 
-Under Luma's **Accounts and playback settings → Emby**, enter:
+Under Luma's **Tools → Open Settings Menu → Emby**, enter:
 
 | Field | Example / location |
 | --- | --- |
@@ -128,6 +129,7 @@ To regenerate the skin and assets, install Pillow in your development Python env
 ```powershell
 python tools/build_ui.py
 python tools/preview_ui.py
+python tools/build_settings.py
 ```
 
 ![Offline home layout preview with fictional titles](docs/home-layout-preview.png)

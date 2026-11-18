@@ -311,6 +311,21 @@ class SearchPlaybackTests(unittest.TestCase):
         self.client.cached.assert_not_called()
         self.client.add.assert_not_called()
 
+    def test_provider_cache_reuses_metadata_but_rechecks_torbox(self):
+        from resources.lib import preferences as prefs
+        with patch.object(prefs, 'get', side_effect=lambda k: prefs.DEFAULTS[k]):
+            self.discover()
+            self.assertEqual(len(self.queries), 2)
+            self.discover()
+        self.assertEqual(len(self.queries), 2)
+        self.assertEqual(self.client.cached.call_count, 2)
+
+    def test_automatic_source_selection_avoids_source_dialog(self):
+        from resources.lib import preferences as prefs
+        with patch.object(prefs, 'get', side_effect=lambda k: 'auto' if k == 'movie_playstyle' else prefs.DEFAULTS[k]):
+            self.assertIsNotNone(self.discover())
+        self.dialog.select.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

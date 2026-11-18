@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.luma" name="Luma" version="0.2.0" provider-name="Luma">
+<addon id="plugin.video.luma" name="Luma" version="0.3.0" provider-name="Luma">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
     <import addon="script.module.requests" version="2.22.0"/>
@@ -10,7 +10,7 @@
   <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Your TorBox library. Beautifully simple.</summary>
-    <description lang="en_GB">A lightweight TorBox player with title search, optional CocoScrapers and Magneto/POV providers, a dedicated home screen, local resume points, and optional Trakt sync. Built for Kodi 21 and Google TV Streamer.</description>
+    <description lang="en_GB">A lightweight TorBox player with discovery and personal menus, title search, optional CocoScrapers and Magneto/POV providers, a dedicated home dashboard, local resume points, and optional Trakt sync. Built for Kodi 21 and Google TV Streamer.</description>
     <platform>all</platform><license>MIT</license>
     <assets><icon>resources/icon.png</icon><fanart>resources/fanart.png</fanart></assets>
   </extension>

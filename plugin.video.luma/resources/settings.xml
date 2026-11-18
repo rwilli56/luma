@@ -1,55 +1,432 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <settings version="1">
   <section id="plugin.video.luma">
-    <category id="accounts" label="32000">
+    <category id="general" label="32200">
+      <group id="1">
+        <setting id="startup" type="string" label="32201" help="32202">
+          <level>0</level>
+          <default>menu</default>
+          <constraints>
+            <options>
+              <option label="32203">menu</option>
+              <option label="32204">dashboard</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="search_history" type="boolean" label="32205" help="32206">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="hide_specials" type="boolean" label="32207" help="32208">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="hide_unaired" type="boolean" label="32209" help="32210">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="hide_watched" type="boolean" label="32211" help="32212">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="page_size" type="integer" label="32213" help="32214">
+          <level>0</level>
+          <default>20</default>
+          <constraints>
+            <minimum>10</minimum>
+            <maximum>50</maximum>
+            <step>10</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="next_sort" type="string" label="32215" help="32216">
+          <level>0</level>
+          <default>recent</default>
+          <constraints>
+            <options>
+              <option label="32217">recent</option>
+              <option label="32218">title</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+      </group>
+    </category>
+    <category id="accounts" label="32219">
       <group id="1">
         <setting id="torbox_key" type="string" label="32001" help="32011">
-          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints>
-          <control type="edit" format="string"><hidden>true</hidden></control>
+          <level>0</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
         </setting>
         <setting id="trakt_client_id" type="string" label="32002" help="32012">
-          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints>
-          <control type="edit" format="string"/>
+          <level>0</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string" />
         </setting>
         <setting id="trakt_client_secret" type="string" label="32003" help="32013">
-          <level>2</level><default/><constraints><allowempty>true</allowempty></constraints>
-          <control type="edit" format="string"><hidden>true</hidden></control>
+          <level>2</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="connect_trakt" type="action" label="32220" help="32221">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=connect_trakt)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="sync_trakt" type="action" label="32222" help="32223">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=sync)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="trakt_scrobble" type="boolean" label="32224" help="32225">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
         </setting>
       </group>
     </category>
-    <category id="emby" label="32020">
-      <group id="1">
-        <setting id="emby_url" type="string" label="32021" help="32024">
-          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"/>
-        </setting>
-        <setting id="emby_key" type="string" label="32022">
-          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"><hidden>true</hidden></control>
-        </setting>
-        <setting id="emby_user" type="string" label="32023" help="32025">
-          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"/>
-        </setting>
-      </group>
-    </category>
-    <category id="search" label="32030">
+    <category id="providers" label="32226">
       <group id="1">
         <setting id="provider_coco" type="boolean" label="32031" help="32033">
-          <level>0</level><default>true</default><control type="toggle"/>
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
         </setting>
         <setting id="provider_pov" type="boolean" label="32032" help="32033">
-          <level>0</level><default>true</default><control type="toggle"/>
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="provider_settings" type="action" label="32227" help="32228">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=providers)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="provider_updates" type="action" label="32229" help="32230">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=provider_updates)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
         </setting>
       </group>
     </category>
-    <category id="playback" label="32004">
+    <category id="scraping" label="32231">
       <group id="1">
+        <setting id="scrape_timeout" type="integer" label="32232" help="32233">
+          <level>0</level>
+          <default>20</default>
+          <constraints>
+            <minimum>5</minimum>
+            <maximum>60</maximum>
+            <step>5</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="scrape_workers" type="integer" label="32234" help="32235">
+          <level>0</level>
+          <default>4</default>
+          <constraints>
+            <minimum>1</minimum>
+            <maximum>4</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="scrape_packs" type="boolean" label="32236" help="32237">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="source_cache" type="boolean" label="32238" help="32239">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+      </group>
+    </category>
+    <category id="filters" label="32240">
+      <group id="1">
+        <setting id="min_resolution" type="string" label="32241" help="32242">
+          <level>0</level>
+          <default>0</default>
+          <constraints>
+            <options>
+              <option label="32243">0</option>
+              <option label="32244">720</option>
+              <option label="32245">1080</option>
+              <option label="32246">2160</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="max_resolution" type="string" label="32247" help="32248">
+          <level>0</level>
+          <default>2160</default>
+          <constraints>
+            <options>
+              <option label="32249">720</option>
+              <option label="32250">1080</option>
+              <option label="32251">2160</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="movie_size" type="integer" label="32252" help="32253">
+          <level>0</level>
+          <default>0</default>
+          <constraints>
+            <minimum>0</minimum>
+            <maximum>200</maximum>
+            <step>5</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="episode_size" type="integer" label="32254" help="32255">
+          <level>0</level>
+          <default>0</default>
+          <constraints>
+            <minimum>0</minimum>
+            <maximum>100</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="exclude_cam" type="boolean" label="32256" help="32257">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="exclude_dv" type="boolean" label="32258" help="32259">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="exclude_av1" type="boolean" label="32260" help="32261">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="source_sort" type="string" label="32262" help="32263">
+          <level>0</level>
+          <default>quality</default>
+          <constraints>
+            <options>
+              <option label="32264">quality</option>
+              <option label="32265">small</option>
+              <option label="32266">large</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+      </group>
+    </category>
+    <category id="playback" label="32267">
+      <group id="1">
+        <setting id="movie_playstyle" type="string" label="32268" help="32269">
+          <level>0</level>
+          <default>select</default>
+          <constraints>
+            <options>
+              <option label="32270">select</option>
+              <option label="32271">auto</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="episode_playstyle" type="string" label="32272" help="32273">
+          <level>0</level>
+          <default>select</default>
+          <constraints>
+            <options>
+              <option label="32274">select</option>
+              <option label="32275">auto</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="resume_style" type="string" label="32276" help="32277">
+          <level>0</level>
+          <default>ask</default>
+          <constraints>
+            <options>
+              <option label="32278">ask</option>
+              <option label="32279">resume</option>
+              <option label="32280">beginning</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="watched_percent" type="integer" label="32281" help="32282">
+          <level>0</level>
+          <default>90</default>
+          <constraints>
+            <minimum>70</minimum>
+            <maximum>99</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
         <setting id="manage_refresh" type="boolean" label="32007" help="32017">
-          <level>0</level><default>true</default><control type="toggle"/>
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
         </setting>
         <setting id="allow_dv" type="boolean" label="32005" help="32015">
-          <level>0</level><default>false</default><control type="toggle"/>
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
         </setting>
         <setting id="prefer_lossless" type="boolean" label="32006" help="32016">
-          <level>0</level><default>false</default><control type="toggle"/>
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+      </group>
+    </category>
+    <category id="emby" label="32283">
+      <group id="1">
+        <setting id="emby_url" type="string" label="32021" help="32024">
+          <level>0</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string" />
+        </setting>
+        <setting id="emby_key" type="string" label="32022" help="32284">
+          <level>0</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="emby_user" type="string" label="32023" help="32025">
+          <level>0</level>
+          <default />
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string" />
+        </setting>
+      </group>
+    </category>
+    <category id="shortcuts" label="32285">
+      <group id="1">
+        <setting id="open_dashboard" type="action" label="32286" help="32287">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=dashboard)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="open_status" type="action" label="32288" help="32289">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=status)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="open_downloads" type="action" label="32290" help="32291">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=downloads)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+      </group>
+    </category>
+    <category id="advanced" label="32292">
+      <group id="1">
+        <setting id="catalog_ttl" type="integer" label="32293" help="32294">
+          <level>0</level>
+          <default>10</default>
+          <constraints>
+            <minimum>1</minimum>
+            <maximum>60</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="library_interval" type="integer" label="32295" help="32296">
+          <level>0</level>
+          <default>5</default>
+          <constraints>
+            <minimum>1</minimum>
+            <maximum>60</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>false</popup>
+          </control>
+        </setting>
+        <setting id="window_tests" type="boolean" label="32297" help="32298">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="clear_cache" type="action" label="32299" help="32300">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=clear_cache)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="clear_sources" type="action" label="32301" help="32302">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=clear_sources)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
+        </setting>
+        <setting id="clear_searches" type="action" label="32303" help="32304">
+          <level>0</level>
+          <data>RunPlugin(plugin://plugin.video.luma/?action=tool&amp;name=clear_searches)</data>
+          <control type="button" format="action">
+            <close>true</close>
+          </control>
         </setting>
       </group>
     </category>

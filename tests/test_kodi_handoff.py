@@ -186,6 +186,17 @@ class KodiHandoffTests(unittest.TestCase):
             torbox.assert_not_called()
         self.assertFalse(plugin.setResolvedUrl.call_args.args[1])
 
+    def test_automatic_resume_uses_saved_offset_without_prompt(self):
+        from resources.lib import preferences as prefs
+        self.db.save_progress(self.media, 450, 1000)
+        gui.Dialog.return_value.contextmenu.reset_mock()
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'), \
+             patch.object(prefs, 'get', side_effect=lambda k: 'resume' if k == 'resume_style' else prefs.DEFAULTS[k]), patch.object(app, 'TorBox') as torbox:
+            torbox.return_value.resolve.return_value = 'https://cdn.test/secret'
+            app.play(10, self.media['key'])
+        self.assertEqual(plugin.setResolvedUrl.call_args.args[2].properties['StartOffset'], '450.0')
+        gui.Dialog.return_value.contextmenu.assert_not_called()
+
     def test_unavailable_resume_survives_new_filename_key(self):
         from resources.lib import search
         imported = dict(self.media, key='remote-key', sources=[], position=450, duration=1000,

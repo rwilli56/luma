@@ -36,11 +36,12 @@ def media_from_trakt(obj, show=None):
 
 
 class Trakt:
-    def __init__(self, db, client_id, client_secret='', http=None, auth=None, should_defer=None):
+    def __init__(self, db, client_id, client_secret='', http=None, auth=None, should_defer=None, allow_refresh=True):
         self.db, self.client_id, self.client_secret = db, client_id, client_secret
         self.http = http or Http('https://api.trakt.tv', 'Trakt', {'trakt-api-version': '2', 'trakt-api-key': client_id})
         self.auth = auth or Http('https://auth.trakt.tv', 'Trakt login')
         self.should_defer = should_defer or (lambda: False)
+        self.allow_refresh = allow_refresh
 
     @property
     def connected(self):
@@ -68,6 +69,9 @@ class Trakt:
             raise ValueError('Connect Trakt from Luma settings.')
         if force or time.time() >= token.get('created_at', 0) + token.get('expires_in', 0) - 120:
             # Only the background service owns token refresh and authenticated API calls.
+            if not self.allow_refresh:
+                self.db.put('request_sync', True)
+                raise ValueError('Trakt is refreshing its session. Try again after the idle sync finishes.')
             try:
                 refreshed = self.auth.request('POST', '/oauth/token', body=dict(self.credentials(),
                     grant_type='refresh_token', refresh_token=token['refresh_token']))
@@ -142,12 +146,13 @@ class Trakt:
 
     def snapshot(self, progress_budget=8):
         """Pull lists in one sync; spread show-progress requests across service ticks."""
+        from . import preferences as prefs
         if self.db.get('trakt_lists', max_age=600) is None:
             watching = []
             for record in self.paged('/sync/playback', {'extended': 'full'}):
                 show = record.get('show')
                 obj = record.get('episode') or record.get('movie')
-                if not obj or record.get('progress', 0) >= 90:
+                if not obj or record.get('progress', 0) >= prefs.get('watched_percent'):
                     continue
                 item = media_from_trakt(obj, show)
                 duration = (obj.get('runtime') or 45 if show else obj.get('runtime') or 120) * 60
@@ -184,6 +189,9 @@ class Trakt:
 
 
 def queue_progress(db, media, position, duration, completed, watched_at=None):
+    from . import preferences as prefs
+    if not prefs.get('trakt_scrobble'):
+        return
     ids = media.get('trakt', {}).get('ids')
     if not ids or duration <= 0:
         return

@@ -58,6 +58,18 @@ class Store:
             return {row['key']: json.loads(row['value']) for row in db.execute(
                 'SELECT key,value FROM cache WHERE substr(key,1,?)=?', (len(prefix), prefix))}
 
+    def clear_cache(self, prefixes):
+        """Delete named cache namespaces, preserving history, mappings and outbox."""
+        with self.connect() as db:
+            for prefix in prefixes:
+                db.execute('DELETE FROM cache WHERE substr(key,1,?)=?', (len(prefix), prefix))
+
+    def reset(self):
+        """Called only by the idle service after explicit in-app confirmation."""
+        with self.connect() as db:
+            for table in ('cache', 'progress', 'mapping', 'outbox'):
+                db.execute('DELETE FROM ' + table)
+
     def save_progress(self, media, position, duration, completed=False, updated=None):
         if duration <= 0:
             return

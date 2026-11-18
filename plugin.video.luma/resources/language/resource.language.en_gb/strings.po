@@ -100,3 +100,425 @@ msgstr ""
 msgctxt "#32033"
 msgid "Install and enable the provider add-on separately. Its own provider switches are respected. Only TorBox-cached torrents appear in Luma's source chooser."
 msgstr ""
+
+# Generated preferences — tools/build_settings.py
+
+msgctxt "#32200"
+msgid "General"
+msgstr ""
+
+msgctxt "#32201"
+msgid "Opening screen"
+msgstr ""
+
+msgctxt "#32202"
+msgid "Choose the main menu or the visual Home Dashboard."
+msgstr ""
+
+msgctxt "#32203"
+msgid "Main menu"
+msgstr ""
+
+msgctxt "#32204"
+msgid "Home Dashboard"
+msgstr ""
+
+msgctxt "#32205"
+msgid "Save search history"
+msgstr ""
+
+msgctxt "#32206"
+msgid "Stores up to 30 searches per type on this device."
+msgstr ""
+
+msgctxt "#32207"
+msgid "Hide specials"
+msgstr ""
+
+msgctxt "#32208"
+msgid "Hide season zero when browsing shows."
+msgstr ""
+
+msgctxt "#32209"
+msgid "Hide unaired episodes"
+msgstr ""
+
+msgctxt "#32210"
+msgid "Upcoming Episodes always shows future air dates."
+msgstr ""
+
+msgctxt "#32211"
+msgid "Hide watched movies and episodes"
+msgstr ""
+
+msgctxt "#32212"
+msgid "Uses completion already saved on this device when browsing titles and seasons. Personal watched-history menus remain visible."
+msgstr ""
+
+msgctxt "#32213"
+msgid "Items per page"
+msgstr ""
+
+msgctxt "#32214"
+msgid "Smaller pages reduce menu memory and network work."
+msgstr ""
+
+msgctxt "#32215"
+msgid "Next Up sort order"
+msgstr ""
+
+msgctxt "#32216"
+msgid "Sort saved Next Up entries."
+msgstr ""
+
+msgctxt "#32217"
+msgid "Recently watched"
+msgstr ""
+
+msgctxt "#32218"
+msgid "Title"
+msgstr ""
+
+msgctxt "#32219"
+msgid "Accounts"
+msgstr ""
+
+msgctxt "#32220"
+msgid "Connect Trakt"
+msgstr ""
+
+msgctxt "#32221"
+msgid "Authorize using a code on another device."
+msgstr ""
+
+msgctxt "#32222"
+msgid "Sync Trakt now"
+msgstr ""
+
+msgctxt "#32223"
+msgid "Sync while Kodi is idle; local progress stays available offline."
+msgstr ""
+
+msgctxt "#32224"
+msgid "Send playback progress to Trakt"
+msgstr ""
+
+msgctxt "#32225"
+msgid "Disable outbound history and progress updates. Importing history remains available."
+msgstr ""
+
+msgctxt "#32226"
+msgid "Providers"
+msgstr ""
+
+msgctxt "#32227"
+msgid "Manage installed providers"
+msgstr ""
+
+msgctxt "#32228"
+msgid "Open CocoScrapers or POV settings. Their provider switches are respected."
+msgstr ""
+
+msgctxt "#32229"
+msgid "Check provider repository updates"
+msgstr ""
+
+msgctxt "#32230"
+msgid "Ask Kodi to refresh its installed add-on repositories."
+msgstr ""
+
+msgctxt "#32231"
+msgid "Scraping"
+msgstr ""
+
+msgctxt "#32232"
+msgid "Provider dispatch timeout (seconds)"
+msgstr ""
+
+msgctxt "#32233"
+msgid "Stops starting tasks at this limit. Active third-party requests may finish later."
+msgstr ""
+
+msgctxt "#32234"
+msgid "Concurrent provider tasks"
+msgstr ""
+
+msgctxt "#32235"
+msgid "Four or fewer is recommended for Google TV Streamer."
+msgstr ""
+
+msgctxt "#32236"
+msgid "Search season packs"
+msgstr ""
+
+msgctxt "#32237"
+msgid "The requested episode must be identified inside the selected pack."
+msgstr ""
+
+msgctxt "#32238"
+msgid "Cache provider results locally"
+msgstr ""
+
+msgctxt "#32239"
+msgid "Reuses torrent metadata for 15 minutes. TorBox availability is checked fresh each time."
+msgstr ""
+
+msgctxt "#32240"
+msgid "Sort & Filter"
+msgstr ""
+
+msgctxt "#32241"
+msgid "Minimum resolution"
+msgstr ""
+
+msgctxt "#32242"
+msgid "Unknown resolution sources remain visible when set to Any."
+msgstr ""
+
+msgctxt "#32243"
+msgid "Any"
+msgstr ""
+
+msgctxt "#32244"
+msgid "720p"
+msgstr ""
+
+msgctxt "#32245"
+msgid "1080p"
+msgstr ""
+
+msgctxt "#32246"
+msgid "2160p / 4K"
+msgstr ""
+
+msgctxt "#32247"
+msgid "Maximum resolution"
+msgstr ""
+
+msgctxt "#32248"
+msgid "Filters filename resolution hints before choosing a source."
+msgstr ""
+
+msgctxt "#32249"
+msgid "720p"
+msgstr ""
+
+msgctxt "#32250"
+msgid "1080p"
+msgstr ""
+
+msgctxt "#32251"
+msgid "2160p / 4K"
+msgstr ""
+
+msgctxt "#32252"
+msgid "Maximum movie file size (GB; 0 = unlimited)"
+msgstr ""
+
+msgctxt "#32253"
+msgid "A season-pack size describes the entire torrent, so pack results are not size filtered until a file is selected."
+msgstr ""
+
+msgctxt "#32254"
+msgid "Maximum episode file size (GB; 0 = unlimited)"
+msgstr ""
+
+msgctxt "#32255"
+msgid "Unknown sizes remain visible. TorBox provides the final file size."
+msgstr ""
+
+msgctxt "#32256"
+msgid "Exclude CAM / telesync releases"
+msgstr ""
+
+msgctxt "#32257"
+msgid "Uses release-name hints."
+msgstr ""
+
+msgctxt "#32258"
+msgid "Exclude Dolby Vision without HDR10 fallback"
+msgstr ""
+
+msgctxt "#32259"
+msgid "Use this to hide those filenames entirely. Off still ranks them below compatible sources."
+msgstr ""
+
+msgctxt "#32260"
+msgid "Exclude AV1 sources"
+msgstr ""
+
+msgctxt "#32261"
+msgid "Use if your device struggles with a particular AV1 encode."
+msgstr ""
+
+msgctxt "#32262"
+msgid "Source order after compatibility preferences"
+msgstr ""
+
+msgctxt "#32263"
+msgid "Compatibility and common-audio preferences always take priority."
+msgstr ""
+
+msgctxt "#32264"
+msgid "Resolution and HDR"
+msgstr ""
+
+msgctxt "#32265"
+msgid "Smaller files"
+msgstr ""
+
+msgctxt "#32266"
+msgid "Larger files"
+msgstr ""
+
+msgctxt "#32267"
+msgid "Playback"
+msgstr ""
+
+msgctxt "#32268"
+msgid "Movie source selection"
+msgstr ""
+
+msgctxt "#32269"
+msgid "Automatic selects the first preferred cached source."
+msgstr ""
+
+msgctxt "#32270"
+msgid "Choose source"
+msgstr ""
+
+msgctxt "#32271"
+msgid "Automatic"
+msgstr ""
+
+msgctxt "#32272"
+msgid "Episode source selection"
+msgstr ""
+
+msgctxt "#32273"
+msgid "Applies to source search and library playback."
+msgstr ""
+
+msgctxt "#32274"
+msgid "Choose source"
+msgstr ""
+
+msgctxt "#32275"
+msgid "Automatic"
+msgstr ""
+
+msgctxt "#32276"
+msgid "Resume behaviour"
+msgstr ""
+
+msgctxt "#32277"
+msgid "Applies when a saved resume point exists."
+msgstr ""
+
+msgctxt "#32278"
+msgid "Ask"
+msgstr ""
+
+msgctxt "#32279"
+msgid "Resume automatically"
+msgstr ""
+
+msgctxt "#32280"
+msgid "Play from beginning"
+msgstr ""
+
+msgctxt "#32281"
+msgid "Mark watched at (%)"
+msgstr ""
+
+msgctxt "#32282"
+msgid "Controls local completion and outbound Trakt updates."
+msgstr ""
+
+msgctxt "#32283"
+msgid "Emby"
+msgstr ""
+
+msgctxt "#32284"
+msgid "Use a token with access to the intended Emby user."
+msgstr ""
+
+msgctxt "#32285"
+msgid "Shortcuts"
+msgstr ""
+
+msgctxt "#32286"
+msgid "Open Home Dashboard"
+msgstr ""
+
+msgctxt "#32287"
+msgid "Open the charcoal and teal home screen."
+msgstr ""
+
+msgctxt "#32288"
+msgid "Playback and connection status"
+msgstr ""
+
+msgctxt "#32289"
+msgid "Review frame-rate matching and service status."
+msgstr ""
+
+msgctxt "#32290"
+msgid "Download Manager"
+msgstr ""
+
+msgctxt "#32291"
+msgid "Review TorBox transfers. Files download to TorBox, not the Streamer."
+msgstr ""
+
+msgctxt "#32292"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "#32293"
+msgid "Catalog cache lifetime (minutes)"
+msgstr ""
+
+msgctxt "#32294"
+msgid "Caches menu metadata. Does not cache signed playback URLs."
+msgstr ""
+
+msgctxt "#32295"
+msgid "Library refresh interval (minutes)"
+msgstr ""
+
+msgctxt "#32296"
+msgid "Background network work starts only while playback is idle."
+msgstr ""
+
+msgctxt "#32297"
+msgid "Show Window Tests in Tools"
+msgstr ""
+
+msgctxt "#32298"
+msgid "Opens Luma interface previews without resolving a video."
+msgstr ""
+
+msgctxt "#32299"
+msgid "Clear catalog cache"
+msgstr ""
+
+msgctxt "#32300"
+msgid "Preserves credentials, progress, mappings and unsent updates."
+msgstr ""
+
+msgctxt "#32301"
+msgid "Clear local torrent cache"
+msgstr ""
+
+msgctxt "#32302"
+msgid "Deletes only cached provider results."
+msgstr ""
+
+msgctxt "#32303"
+msgid "Clear search history"
+msgstr ""
+
+msgctxt "#32304"
+msgid "Removes saved title and actor queries."
+msgstr ""

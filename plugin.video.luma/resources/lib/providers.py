@@ -36,6 +36,11 @@ def installed():
                 addon = xbmcaddon.Addon(addon_id)
                 item.update(available=True, version=addon.getAddonInfo('version'),
                             path=xbmcvfs.translatePath(addon.getAddonInfo('path')))
+                try:
+                    settings = os.stat(os.path.join(xbmcvfs.translatePath(addon.getAddonInfo('profile')), 'settings.xml'))
+                    item['settings_revision'] = [settings.st_mtime_ns, settings.st_size]
+                except OSError:
+                    item['settings_revision'] = None
         except Exception:
             pass
         result.append(item)
