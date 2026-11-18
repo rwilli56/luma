@@ -30,6 +30,16 @@
         </setting>
       </group>
     </category>
+    <category id="search" label="32030">
+      <group id="1">
+        <setting id="provider_coco" type="boolean" label="32031" help="32033">
+          <level>0</level><default>true</default><control type="toggle"/>
+        </setting>
+        <setting id="provider_pov" type="boolean" label="32032" help="32033">
+          <level>0</level><default>true</default><control type="toggle"/>
+        </setting>
+      </group>
+    </category>
     <category id="playback" label="32004">
       <group id="1">
         <setting id="manage_refresh" type="boolean" label="32007" help="32017">

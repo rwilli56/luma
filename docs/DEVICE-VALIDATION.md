@@ -13,6 +13,19 @@ Record Kodi version, Streamer Android/firmware build, S90F firmware, HDMI route,
 - Import more than 20 watched series: home stays bounded; See all retains the rest.
 - Open and leave playback; confirm the updated home appears when reopening the add-on.
 
+## Search providers (0.2.0)
+
+These are pending device/account checks; automated fixtures do not establish live provider availability.
+
+- Install CocoScrapers 1.0.45+ and/or POV 6.11.03+. Open Luma's Search provider settings; confirm each installed/enabled backend and its version are detected. Disable one backend and verify it is excluded.
+- Enable a small set of torrent providers in each backend. Search a movie, confirm the release year, and select a cached HDR10+ / E-AC-3 result. Confirm native playback, seeking and frame-rate switching as below.
+- Search an aired episode, including one available only in a season pack. Verify the chosen file has the requested S/E. Wrong-season, wrong-episode, sample and ambiguous multi-episode files must not play as that episode.
+- Repeat a search with no Trakt Client ID (Cinemeta) and with a configured Client ID (Trakt). Confirm exact episode IDs are retained for Trakt results; Cinemeta series IDs must not become episode IDs.
+- Open a Next up episode absent from the library; confirm provider search starts. Resume an unavailable Continue watching item from a newly selected source and verify its position is preserved.
+- Cancel while providers are running and while TorBox is preparing the file list. No playback should start. Let active requests finish before launching another search; confirm a failed provider does not hide results from others.
+- Simulate duplicate magnets, no cached hits, cache expiry, TorBox rate limiting and account limits. No automatic uncached download should start through Search. Add a link remains the explicit download path.
+- Stop a searched episode, refresh the TorBox library and restart Kodi. Verify its title, exact episode IDs and local resume survive the refresh. Confirm no source searches run during video playback.
+
 ## Frame-rate and HDR matrix
 
 Set Luma's automatic frame-rate matching on. Before each test, choose a different GUI refresh rate so a successful switch is observable. Verify Kodi's settings show **On start/stop** and **Sync playback to display: Off**. Then verify the actual output with Kodi's player diagnostics and the TV's signal information where available. A multiple of the content frame rate may be selected if the exact rate is not exposed.

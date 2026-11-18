@@ -18,7 +18,7 @@ ROWS = {
             ('Wild Trails', 'S02 E01 · 26 min left', 'W', 'EMBY · READY', 98)],
     '300': [('Northern Lights', 'S03 E02', 'N', 'READY TO PLAY', 0),
             ('The Long Weekend', 'S01 E06', 'T', 'READY TO PLAY', 0),
-            ('Small Hours', 'S02 E03', 'S', 'ADD TO TORBOX', 0)],
+            ('Small Hours', 'S02 E03', 'S', 'FIND SOURCES', 0)],
     '400': [('The Quiet Coast', 'Season 1', 'T', '', 0), ('Northern Lights', 'Season 3', 'N', '', 0),
             ('Wild Trails', 'Season 2', 'W', '', 0), ('The Long Weekend', 'Season 1', 'T', '', 0),
             ('Small Hours', 'Season 2', 'S', '', 0)]}

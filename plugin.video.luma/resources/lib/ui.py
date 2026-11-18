@@ -18,7 +18,7 @@ def list_item(media):
     item.setProperty('has_progress', 'true' if progress else '')
     sources = media.get('sources', [])
     ready = any(s['ready'] for s in sources)
-    item.setProperty('availability', '' if media.get('type') == 'tvshow' else ('EMBY · READY' if media.get('emby') else ('READY TO PLAY' if ready else 'ADD TO TORBOX')))
+    item.setProperty('availability', '' if media.get('type') == 'tvshow' else ('EMBY · READY' if media.get('emby') else ('READY TO PLAY' if ready else 'FIND SOURCES')))
     item.setArt({'thumb': media.get('art', '')})
     return item
 
@@ -81,7 +81,7 @@ class Home(xbmcgui.WindowXML):
             else:
                 self.selection = ('settings', None)
         else:
-            actions = {100: 'library', 101: 'add', 102: 'refresh', 103: 'settings',
+            actions = {100: 'library', 101: 'add', 102: 'refresh', 103: 'settings', 104: 'search',
                        201: 'continue', 301: 'next', 401: 'shows'}
             if control_id not in actions:
                 return

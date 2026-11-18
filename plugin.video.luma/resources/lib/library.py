@@ -32,7 +32,7 @@ def library(db):
                 item['title'] = show['title']
                 item['year'] = show.get('year')
                 # Episode IDs are required before syncing; show IDs alone are insufficient.
-                episode = episodes.get('episode:{}:{}:{}'.format(show['ids']['trakt'], item['season'], item['episode']))
+                episode = episodes.get('episode:{}:{}:{}'.format(show['ids'].get('trakt'), item['season'], item['episode']))
                 if episode:
                     item['trakt']['ids'] = episode['ids']
                     item['episode_title'] = episode.get('title', '')

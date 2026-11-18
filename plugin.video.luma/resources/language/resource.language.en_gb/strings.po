@@ -84,3 +84,19 @@ msgstr ""
 msgctxt "#32025"
 msgid "Use the ID of the Emby user whose library and progress you want to access. See the installation guide."
 msgstr ""
+
+msgctxt "#32030"
+msgid "Search"
+msgstr ""
+
+msgctxt "#32031"
+msgid "Use installed CocoScrapers providers"
+msgstr ""
+
+msgctxt "#32032"
+msgid "Use installed Magneto / POV providers"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Install and enable the provider add-on separately. Its own provider switches are respected. Only TorBox-cached torrents appear in Luma's source chooser."
+msgstr ""

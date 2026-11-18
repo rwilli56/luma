@@ -186,6 +186,22 @@ class KodiHandoffTests(unittest.TestCase):
             torbox.assert_not_called()
         self.assertFalse(plugin.setResolvedUrl.call_args.args[1])
 
+    def test_unavailable_resume_survives_new_filename_key(self):
+        from resources.lib import search
+        imported = dict(self.media, key='remote-key', sources=[], position=450, duration=1000,
+                        updated=time.time(), completed=False)
+        self.db.put('library_torrents', [])
+        self.db.put('trakt_snapshot', {'continue': [imported]})
+        def discover(media):
+            self.db.put('library_torrents', [self.media])
+            return self.media
+        gui.Dialog.return_value.contextmenu.return_value = 0
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'), \
+             patch.object(search, 'find_sources', side_effect=discover), patch.object(app, 'TorBox') as torbox:
+            torbox.return_value.resolve.return_value = 'https://cdn.test/secret'
+            app.play(10, 'remote-key')
+        self.assertEqual(plugin.setResolvedUrl.call_args.args[2].properties['StartOffset'], '450.0')
+
     def test_tracker_ignores_another_addon(self):
         self.db.put('pending_playback', {'media': self.media, 'created': time.time()})
         player = PlaybackTracker(self.db)
@@ -237,6 +253,13 @@ class HomeLaunchTests(unittest.TestCase):
         self.assertFalse(window.initialized)
         self.assertTrue(window.closed)
         self.assertGreaterEqual(window.close_calls, 1)
+
+    def test_search_button_is_present_and_navigates(self):
+        with patch.object(ui.config, 'store', return_value=self.db):
+            home = ui.Home('Luma-Home.xml', str(ADDON_PATH), 'Default', '1080i')
+        self.assertIn(104, home.controls)
+        home.onClick(104)
+        self.assertEqual(home.selection, ('search', None))
 
 
 if __name__ == '__main__':

@@ -66,7 +66,8 @@ def browse(handle, action, params):
         item = decorate(media)
         item.setProperty('IsPlayable', 'false' if folder else 'true')
         if not folder:
-            item.addContextMenuItems([('Identify on Trakt', 'RunPlugin({})'.format(route('identify', key=media['key'])))])
+            item.addContextMenuItems([('Find sources', 'RunPlugin({})'.format(route('search', key=media['key']))),
+                                      ('Identify on Trakt', 'RunPlugin({})'.format(route('identify', key=media['key'])))])
         target = route('series', key=media.get('show_key', media['key'])) if folder else route('play', key=media['key'])
         directory.append((target, item, folder))
     xbmcplugin.addDirectoryItems(handle, directory, len(directory))
@@ -91,7 +92,17 @@ def play(handle, key):
     media = find_media(db, key)
     sources = [s for s in media.get('sources', []) if s['ready']]
     if not sources:
-        raise ValueError('This episode or movie is not ready in your TorBox library. Add its link, then refresh.')
+        from .search import find_sources
+        history = next((i for i in home_rows(db)['continue'] if i['key'] == key), None)
+        media = find_sources(media)
+        if not media:
+            xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+            return
+        # Preserve an imported resume position when its filename key differs.
+        if history:
+            db.save_progress(media, history['position'], history['duration'], False, history.get('updated'))
+        key = media['key']
+        sources = media['sources']
     allow_dv = config.setting('allow_dv') == 'true'
     lossless = config.setting('prefer_lossless') == 'true'
     sources.sort(key=lambda s: source_rank(s, allow_dv, lossless), reverse=True)
@@ -195,8 +206,19 @@ def identify(key):
     notify('Title identified. Trakt sync will run while playback is idle.')
 
 
+def search(key=None):
+    from .search import choose_title, find_sources
+    if xbmc.Player().isPlaying():
+        raise ValueError('Stop playback before searching providers.')
+    media = find_media(config.store(), key) if key else choose_title()
+    if media:
+        selected = find_sources(media)
+        if selected:
+            xbmc.executebuiltin('PlayMedia("{}")'.format(route('play', key=selected['key'])))
+
+
 def settings_menu():
-    selected = xbmcgui.Dialog().select('Luma', ['Accounts and playback settings', 'Connect Trakt', 'Sync now', 'Playback and connection status'])
+    selected = xbmcgui.Dialog().select('Luma', ['Accounts and playback settings', 'Connect Trakt', 'Sync now', 'Playback and connection status', 'Search provider settings'])
     db = config.store()
     if selected == 0:
         config.addon().openSettings()
@@ -209,8 +231,11 @@ def settings_menu():
         notify('Sync requested. Luma syncs when playback is idle.')
     elif selected == 3:
         _, display_status = configure_display(False)
-        xbmcgui.Dialog().textviewer('Luma · status', '{}\n\n{}\n\n{}\n\n{}\n\nProgress is saved locally every 10 seconds during playback.'.format(
-            display_status, db.get('library_status', 'TorBox not connected'), db.get('trakt_status', 'Trakt not connected'), db.get('emby_status', 'Emby not connected')))
+        xbmcgui.Dialog().textviewer('Luma · status', '{}\n\n{}\n\n{}\n\n{}\n\n{}\n\nProgress is saved locally every 10 seconds during playback.'.format(
+            display_status, db.get('library_status', 'TorBox not connected'), db.get('trakt_status', 'Trakt not connected'), db.get('emby_status', 'Emby not connected'), db.get('search_status', 'No provider search yet')))
+    elif selected == 4:
+        from .search import provider_settings
+        provider_settings()
 
 
 def home():
@@ -222,6 +247,9 @@ def home():
         action, media = selection
         if action == 'settings':
             settings_menu()
+        elif action == 'search':
+            search()
+            return
         elif action == 'refresh':
             db = config.store()
             db.put('request_refresh', True)
@@ -262,6 +290,8 @@ def run():
             play(handle, params['key'])
         elif action == 'identify':
             identify(params['key'])
+        elif action == 'search':
+            search(params.get('key'))
         elif action == 'home':
             if handle >= 0:
                 xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

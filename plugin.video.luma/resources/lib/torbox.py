@@ -45,11 +45,41 @@ class TorBox:
             raise ApiError('TorBox')
         return url
 
-    def add(self, link):
+    def cached(self, hashes):
+        """Return only explicit cache hits, in bounded batches."""
+        hits = {}
+        hashes = list(dict.fromkeys(hashes))
+        for start in range(0, len(hashes), 100):
+            batch = hashes[start:start + 100]
+            data = self._call('GET', 'torrents/checkcached', params={'hash': batch, 'format': 'object'})
+            if isinstance(data, dict):
+                rows = [(key, value) for key, value in data.items() if isinstance(value, dict)]
+            elif isinstance(data, list):
+                rows = [(value.get('hash', ''), value) for value in data if isinstance(value, dict)]
+            else:
+                raise ApiError('TorBox')
+            for key, value in rows:
+                key = key.lower()
+                if key in batch and value and value.get('cached') is not False:
+                    hits[key] = value
+        return hits
+
+    def torrent(self, transfer_id):
+        data = self._call('GET', 'torrents/mylist', params={'id': transfer_id, 'bypass_cache': 'true'})
+        if isinstance(data, list):
+            data = next((item for item in data if str(item.get('id')) == str(transfer_id)), None)
+        if not isinstance(data, dict) or str(data.get('id')) != str(transfer_id):
+            raise ApiError('TorBox')
+        return data
+
+    def add(self, link, cached_only=False):
         link = link.strip()
         parsed = urlsplit(link)
         if parsed.scheme.lower() == 'magnet' and 'xt=urn:btih:' in link.lower():
-            return self._call('POST', 'torrents/createtorrent', form={'magnet': link, 'seed': '1', 'allow_zip': 'false'})
+            form = {'magnet': link, 'seed': '1', 'allow_zip': 'false'}
+            if cached_only:
+                form['add_only_if_cached'] = 'true'
+            return self._call('POST', 'torrents/createtorrent', form=form)
         if parsed.scheme.lower() in ('http', 'https') and parsed.hostname:
             return self._call('POST', 'webdl/createwebdownload', form={'link': link})
         raise ValueError('Enter a magnet link or an HTTP(S) file link.')

@@ -61,13 +61,13 @@ def build():
     control(controls, 'textbox', 80, 195, 1600, 112, label='$INFO[Window.Property(hero_title)]',
             font='font45', textcolor='FFF1EFE9')
     label(controls, '$INFO[Window.Property(hero_detail)]', 84, 302, 1400, 32, 'FFA5B2B0')
-    buttons = [(100, 'TorBox library', 900, 230), (101, 'Add a link', 1150, 205),
-               (102, 'Refresh', 1375, 180), (103, 'Settings', 1575, 220)]
+    buttons = [(104, 'Search', 680, 180), (100, 'Library', 880, 210), (101, 'Add a link', 1110, 205),
+               (102, 'Refresh', 1335, 180), (103, 'Settings', 1535, 220)]
     for index, (cid, text, x, width) in enumerate(buttons):
         control(controls, 'button', x, 45, width, 58, id=cid, label=text, font='font13',
                 textcolor='FFB9C5C2', focusedcolor='FF10201C', texturefocus='button-focus.png',
                 texturenofocus='clear.png', align='center', aligny='center',
-                onleft=buttons[index - 1][0], onright=buttons[(index + 1) % 4][0], onup=400, ondown=200)
+                onleft=buttons[index - 1][0], onright=buttons[(index + 1) % len(buttons)][0], onup=400, ondown=200)
     for cid, title, y, up, down in [(200, 'Continue watching', 350, 100, 300),
                                   (300, 'Next up', 580, 200, 400),
                                   (400, 'Recently watched series', 810, 300, 100)]:
