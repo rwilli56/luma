@@ -8,6 +8,32 @@ import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import zipfile
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+
+class DirectoryLinks(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a' and dict(attrs).get('href'):
+            self.links.append(dict(attrs)['href'])
+
+
+def verify_listing(base_url, html, entries):
+    """Mirror Kodi's cached-directory existence check for root control files."""
+    base = base_url.rstrip('/') + '/'
+    listing = DirectoryLinks()
+    listing.feed(html)
+    paths = {urljoin(base, link) for link in listing.links}
+    for addon in entries:
+        for directory in addon.findall("./extension[@point='xbmc.addon.repository']/dir"):
+            for name in ('info', 'checksum'):
+                target = directory.findtext(name)
+                if target and urljoin(target, '.') == base and target not in paths:
+                    raise ValueError('Kodi would reject an unlisted repository control file: ' + target)
 
 
 def fetch(url):
@@ -28,6 +54,7 @@ def verify(base_url):
     entries = ET.fromstring(index)
     if entries.tag != 'addons':
         raise ValueError('Missing addons index.')
+    verify_listing(base_url, fetch(base_url + '/').decode('utf-8'), entries)
     for addon in entries:
         addon_id, version = addon.attrib['id'], addon.attrib['version']
         if not re.fullmatch(r'[a-z0-9._-]+', addon_id) or not re.fullmatch(r'[0-9.]+', version):
