@@ -1,0 +1,56 @@
+name: Publish Kodi repository
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'plugin.video.luma/**'
+      - 'repository.luma/**'
+      - 'tools/**'
+      - 'tests/**'
+      - '.github/workflows/publish-repository.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luma-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Test core and Kodi contracts
+        run: python -m unittest discover -s tests -v
+      - name: Compile add-on
+        run: python -m compileall -q plugin.video.luma
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Build repository for this GitHub Pages URL
+        env:
+          LUMA_PAGES_URL: ${{ steps.pages.outputs.base_url }}
+        run: python tools/build_repository.py --base-url "$LUMA_PAGES_URL"
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/repository
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy repository
+        id: deployment
+        uses: actions/deploy-pages@v4

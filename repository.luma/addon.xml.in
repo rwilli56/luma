@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<addon id="repository.luma" name="Luma Repository" version="0.1.0" provider-name="Luma">
+  <extension point="xbmc.addon.repository" name="Luma Repository">
+    <dir minversion="21.0.0">
+      <info compressed="false">{{BASE_URL}}/addons.xml</info>
+      <checksum>{{BASE_URL}}/addons.xml.md5</checksum>
+      <datadir zip="true">{{BASE_URL}}/</datadir>
+      <hashes>false</hashes>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Install and update Luma for Kodi</summary>
+    <description lang="en_GB">Official distribution repository for the Luma development build. Targets Kodi 21 Omega.</description>
+    <platform>all</platform><license>MIT</license>
+    <assets><icon>icon.png</icon></assets>
+  </extension>
+</addon>

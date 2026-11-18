@@ -1,0 +1,86 @@
+msgid ""
+msgstr ""
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "#32000"
+msgid "Accounts"
+msgstr ""
+
+msgctxt "#32001"
+msgid "TorBox API key"
+msgstr ""
+
+msgctxt "#32002"
+msgid "Trakt application Client ID"
+msgstr ""
+
+msgctxt "#32003"
+msgid "Trakt Client Secret (legacy apps, optional)"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Playback preferences"
+msgstr ""
+
+msgctxt "#32005"
+msgid "Prefer Dolby Vision sources (compatible displays)"
+msgstr ""
+
+msgctxt "#32006"
+msgid "Prefer lossless audio sources (compatible audio system)"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Enter your key from the TorBox dashboard. Stored in Kodi's local add-on settings."
+msgstr ""
+
+msgctxt "#32007"
+msgid "Set up Kodi frame-rate matching automatically"
+msgstr ""
+
+msgctxt "#32017"
+msgid "Before playback, sets Kodi Adjust display refresh rate to On start/stop and Sync playback to display to Off. These are Kodi-wide settings. Disable to manage them yourself."
+msgstr ""
+
+msgctxt "#32012"
+msgid "Create your Trakt API app, then use Settings > Connect Trakt in Luma."
+msgstr ""
+
+msgctxt "#32013"
+msgid "Leave empty for new apps. Only supply if required by your existing Trakt application."
+msgstr ""
+
+msgctxt "#32015"
+msgid "Off for the Samsung S90F profile. Filename hints cannot confirm a Dolby Vision profile or fallback layer."
+msgstr ""
+
+msgctxt "#32016"
+msgid "Changes source sorting only. Configure actual decoding and audio passthrough in Kodi for your hardware."
+msgstr ""
+
+msgctxt "#32020"
+msgid "Emby (optional)"
+msgstr ""
+
+msgctxt "#32021"
+msgid "Server URL"
+msgstr ""
+
+msgctxt "#32022"
+msgid "API key or user access token"
+msgstr ""
+
+msgctxt "#32023"
+msgid "Emby user ID"
+msgstr ""
+
+msgctxt "#32024"
+msgid "For example http://192.168.1.10:8096. Use HTTPS for remote servers. Original-file streaming only."
+msgstr ""
+
+msgctxt "#32025"
+msgid "Use the ID of the Emby user whose library and progress you want to access. See the installation guide."
+msgstr ""

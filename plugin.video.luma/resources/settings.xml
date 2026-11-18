@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<settings version="1">
+  <section id="plugin.video.luma">
+    <category id="accounts" label="32000">
+      <group id="1">
+        <setting id="torbox_key" type="string" label="32001" help="32011">
+          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints>
+          <control type="edit" format="string"><hidden>true</hidden></control>
+        </setting>
+        <setting id="trakt_client_id" type="string" label="32002" help="32012">
+          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints>
+          <control type="edit" format="string"/>
+        </setting>
+        <setting id="trakt_client_secret" type="string" label="32003" help="32013">
+          <level>2</level><default/><constraints><allowempty>true</allowempty></constraints>
+          <control type="edit" format="string"><hidden>true</hidden></control>
+        </setting>
+      </group>
+    </category>
+    <category id="emby" label="32020">
+      <group id="1">
+        <setting id="emby_url" type="string" label="32021" help="32024">
+          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"/>
+        </setting>
+        <setting id="emby_key" type="string" label="32022">
+          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"><hidden>true</hidden></control>
+        </setting>
+        <setting id="emby_user" type="string" label="32023" help="32025">
+          <level>0</level><default/><constraints><allowempty>true</allowempty></constraints><control type="edit" format="string"/>
+        </setting>
+      </group>
+    </category>
+    <category id="playback" label="32004">
+      <group id="1">
+        <setting id="manage_refresh" type="boolean" label="32007" help="32017">
+          <level>0</level><default>true</default><control type="toggle"/>
+        </setting>
+        <setting id="allow_dv" type="boolean" label="32005" help="32015">
+          <level>0</level><default>false</default><control type="toggle"/>
+        </setting>
+        <setting id="prefer_lossless" type="boolean" label="32006" help="32016">
+          <level>0</level><default>false</default><control type="toggle"/>
+        </setting>
+      </group>
+    </category>
+  </section>
+</settings>
