@@ -2,7 +2,13 @@
 
 Luma includes a real Kodi repository builder and a GitHub Pages deployment workflow. The repository metadata uses Kodi's required `<dir>` structure and serves both the video add-on and the repository add-on, so Kodi can update either.
 
-The source tree is ready to push. **No GitHub remote or account connection was configured in the starting workspace, so there is no live installation URL yet.** Do not use an example URL as a Kodi source.
+**Published repository:** [rwilli56/luma](https://github.com/rwilli56/luma)
+
+**Live Kodi source:** [https://rwilli56.github.io/luma/](https://rwilli56.github.io/luma/)
+
+**Bootstrap package:** [repository.luma-0.1.0.zip](https://rwilli56.github.io/luma/repository.luma-0.1.0.zip)
+
+The initial publishing run passed the 55 automated tests and deployed the repository to GitHub Pages. Hardware and live account validation remains pending. The instructions below also explain how to maintain or fork the distribution.
 
 ## Publish
 
