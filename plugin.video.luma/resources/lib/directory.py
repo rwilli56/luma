@@ -8,6 +8,7 @@ from .catalog import Catalog
 from .explore import Explorer, get_object, save_object, title_object
 from .library import home_rows, match_media
 from .trakt import Trakt
+from .custom_search import attach as custom_context, show_context
 
 
 def client(db):
@@ -25,10 +26,12 @@ def render(handle, params):
     entries, content = [], 'files'
     explorer = Explorer(db, client(db))
 
-    def add(label, action='menu', folder=True, description='', **args):
+    def add(label, action='menu', folder=True, description='', context_media=None, context_season=None, **args):
         item = xbmcgui.ListItem(label=label)
         if description:
             item.getVideoInfoTag().setPlot(description)
+        if context_media:
+            custom_context(item, context_media, context_season, db)
         entries.append((route(action, **args), item, folder))
 
     def rows(items, more=False):
@@ -42,7 +45,7 @@ def render(handle, params):
                 add(obj.get('name', 'List'), name='catalog', category='list_items', kind=kind, key=key)
                 continue
             if obj_kind == 'show':
-                add('{} ({})'.format(obj['title'], obj.get('year') or '?'), name='seasons', key=key, kind='show', description=obj.get('overview', ''))
+                add('{} ({})'.format(obj['title'], obj.get('year') or '?'), name='seasons', key=key, kind='show', description=obj.get('overview', ''), context_media=show_context(obj))
                 continue
             media = Catalog.media(obj['show'], obj) if obj_kind == 'episode' else Catalog.media(obj)
             if prefs.get('hide_watched') and name in ('catalog', 'episodes') and params.get('category') != 'history' and match_media(media, watched):
@@ -50,6 +53,7 @@ def render(handle, params):
             label = '{} · S{:02d} E{:02d} · {}'.format(media['title'], media['season'], media['episode'], media.get('episode_title') or '') if obj_kind == 'episode' else '{} ({})'.format(media['title'], media.get('year') or '?')
             item = xbmcgui.ListItem(label=label)
             item.setProperty('IsPlayable', 'true')
+            custom_context(item, media, db=db)
             tag = item.getVideoInfoTag()
             tag.setTitle(media.get('episode_title') or media['title'])
             tag.setMediaType('episode' if obj_kind == 'episode' else 'movie')
@@ -74,12 +78,13 @@ def render(handle, params):
                 if ids:
                     obj = dict(title=media['title'], year=media.get('year'), ids=ids, catalog_type='show',
                                catalog='trakt' if ids.get('trakt') else 'cinemeta')
-                    add(media['title'], name='seasons', kind='show', key=save_object(db, obj))
+                    add(media['title'], name='seasons', kind='show', key=save_object(db, obj), context_media=show_context(obj))
                 else:
-                    add(media['title'], action='series', key=media['show_key'])
+                    add(media['title'], action='series', key=media['show_key'], context_media=media)
             else:
                 item = decorate(media)
                 item.setProperty('IsPlayable', 'true')
+                custom_context(item, media, db=db)
                 entries.append((route('play', key=media['key']), item, False))
 
     if name == 'root':
@@ -142,7 +147,8 @@ def render(handle, params):
         for season in sorted({e['season'] for e in episodes}):
             if season == 0 and prefs.get('hide_specials'):
                 continue
-            add('Specials' if season == 0 else 'Season {}'.format(season), name='episodes', kind='show', key=params['key'], season=season)
+            add('Specials' if season == 0 else 'Season {}'.format(season), name='episodes', kind='show', key=params['key'], season=season,
+                context_media=show_context(show), context_season=season)
     elif name == 'episodes':
         show = get_object(db, params['key'])
         episodes = explorer.catalog.season(show, int(params['season']), explorer.catalog.episodes(show))

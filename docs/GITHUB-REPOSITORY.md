@@ -48,8 +48,8 @@ repository.luma/
   repository.luma-0.1.1.zip.sha256
   icon.png
 plugin.video.luma/
-  plugin.video.luma-0.4.0.zip
-  plugin.video.luma-0.4.0.zip.sha256
+  plugin.video.luma-0.5.0.zip
+  plugin.video.luma-0.5.0.zip.sha256
   resources/...
 ```
 

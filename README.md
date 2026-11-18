@@ -2,7 +2,7 @@
 
 An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-friendly home screen. Targets **Kodi 21 Omega**, Google TV Streamer (4K), and a Samsung S90F display.
 
-**Status: 0.4.0 development alpha.** Adds selected-source validation, stronger season-pack matching, manual file confirmation and guided Trakt connection setup. See [source/pack/sign-in behaviour](docs/SOURCE-VALIDATION-AND-PACKS.md) and [menu coverage](docs/SEREN-MENUS-AND-SETTINGS.md). The default main menu and optional visual **Home Dashboard** remain available. Live account/provider tests and Google TV playback still need the checks in [the validation guide](docs/DEVICE-VALIDATION.md).
+**Status: 0.5.0 development alpha.** Adds long-press custom search filters, including alternate season/episode numbering with canonical watch history preserved. See [custom searches and the Bake Off example](docs/CUSTOM-SEARCH-FILTERS.md), [source/pack/sign-in behaviour](docs/SOURCE-VALIDATION-AND-PACKS.md) and [menu coverage](docs/SEREN-MENUS-AND-SETTINGS.md). The default main menu and optional visual **Home Dashboard** remain available. Live account/provider tests and Google TV playback still need the checks in [the validation guide](docs/DEVICE-VALIDATION.md).
 
 ## Install
 
@@ -17,7 +17,7 @@ An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-f
 
 For a direct local installation without the repository:
 
-1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.4.0.zip` from this workspace.
+1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.5.0.zip` from this workspace.
 2. Transfer the ZIP to a folder or network share Kodi can access. In Kodi, enable **Settings → System → Add-ons → Unknown sources**, then choose **Add-ons → Install from zip file**.
 3. Open **Luma → Tools → Open Settings Menu → Accounts**. Enter your TorBox API key from your dashboard.
 4. Open **My Files → TorBox** to browse and play your files after the idle service refreshes them. The visual **Home Dashboard** also has a Refresh button. New transfers can take time to become ready.
@@ -33,6 +33,7 @@ Kodi installs Requests from its official add-on repository for provider compatib
 - Fresh TorBox playback links requested at play time; direct original-file playback through Kodi VideoPlayer.
 - Selected-hash cache rechecks, actual-file validation, optional one-byte CDN link checks and bounded source failover. Bulk checks never open video streams.
 - Season/episode and air-date matching, season-folder filenames, complete-pack season ranges and explicit confirmation for suitable unrecognized filenames. Per-file bindings survive library refreshes.
+- Long-press **Custom search filters…** on movies, shows, seasons, episodes and dashboard cards. Save source title/year/IMDb, source season/episode/offset, title-only provider searches, and required/excluded release phrases. Show, season and episode scopes keep split catalogs isolated; Trakt and local progress retain the selected metadata numbering.
 - Seren-style discovery, personal lists, actor search, genres, years, networks and maintenance menus; cached metadata and paginated lists. Most charts need a Trakt application Client ID; personal lists need Trakt sign-in.
 - Continue watching, Next up, and recently watched series in **Home Dashboard**. Home rows show the first 20 entries; **See all** opens the complete saved list.
 - Local SQLite resume storage, checkpoints every 10 seconds, and configurable resume behaviour. A normal stop can lose up to the last checkpoint interval. Natural ending or the configured completion threshold (90% by default) marks an item watched.
@@ -44,13 +45,15 @@ This version has no automatic next-episode playback, external subtitle fetching,
 
 ## Search providers
 
-1. Update the **Luma video add-on** to **0.4.0** from Luma Repository. The repository add-on stays at 0.1.1.
+1. Update the **Luma video add-on** to **0.5.0** from Luma Repository. The repository add-on stays at 0.1.1.
 2. Install **CocoScrapers Module** from [CocoJoe's repository](https://cocojoe2411.github.io/), or **POV** from [kodifitzwell's repository](https://kodifitzwell.github.io/repo/). Either backend is sufficient; you can use both. Current **Magneto delegates to POV**, so a separate Magneto installation is not needed.
 3. Open **Tools → Provider Tools → Manage Provider Packages**, choose the installed backend and enable its torrent providers. Luma respects those switches. You can turn an entire backend off under **Tools → Open Settings Menu → Providers**. Provider-specific credentials, if required by an individual provider, belong in its own settings. Luma's TorBox key is used only by Luma's TorBox client.
 4. Choose **Search** on Luma's main menu and select movies or shows. Browse a matching show into its seasons and episodes. The visual dashboard's Search button also offers title search.
 5. Select a **TorBox-cached source**. The list shows filename hints for resolution, HDR, audio and size, sorted using the S90F playback preferences. A selected season pack is checked for the exact requested episode; multiple matching video files open a file chooser. Kodi then receives a fresh original-file playback URL.
 
 Opening Continue watching or Next up searches providers when no ready local source exists. Library items also have **Find sources** in their context menu. Search is user initiated and disabled while a video is playing.
+
+For alternate numbering such as *The Great British Bake Off*, long-press the metadata **Season 17 → Custom search filters… → Search season**, enter **10**, then **Save filters**. Episodes in that metadata season now search and match pack files using season 10, while progress remains season 17. From an episode, choose **This season** to apply the same rule. Other metadata seasons are unchanged. Additional title/year/ID hints may be needed when a provider uses a different catalog; see [the custom search guide](docs/CUSTOM-SEARCH-FILTERS.md).
 
 With a Trakt application Client ID configured, title and episode metadata comes from Trakt, including exact sync IDs. Otherwise search uses [Stremio's official Cinemeta catalog](https://github.com/Stremio/stremio-official-addons/blob/master/index.json), without a separate account. Cinemeta often supplies only a series IMDb ID, not an episode IMDb ID; those episodes retain local progress until explicitly identified through Trakt. Luma never submits a series ID as an episode ID. Cinemeta receives title queries; enabled source providers receive title/year/IMDb and episode fields; TorBox receives torrent hashes and the selected magnet.
 
@@ -142,4 +145,4 @@ Runtime code is in `plugin.video.luma/resources/lib`: `torbox.py` and `emby.py` 
 
 Credentials live only in the device's Kodi add-on profile/settings and are not encrypted by this alpha. Luma does not log request URLs, tokens or raw API responses. Kodi's own debug output may include resolved stream URLs; redact them before sharing logs. Playback metadata contains file IDs and local keys, not saved CDN URLs. All background network clients check for playback before starting additional batch requests; a request already in flight may finish after playback starts.
 
-Umbrella, POV and Seren were used as feature references. Umbrella's source-checking/pack methods were reviewed for 0.4.0; see [the implementation review](docs/SOURCE-VALIDATION-AND-PACKS.md). The provider adapters load the user's separately installed CocoScrapers or POV module; Luma does not package their provider code. MIT license covers Luma's original implementation.
+Umbrella, POV and Seren were used as feature references. See the reviews of [source-checking/pack methods](docs/SOURCE-VALIDATION-AND-PACKS.md) and [custom searches/alternate numbering](docs/CUSTOM-SEARCH-FILTERS.md). The provider adapters load the user's separately installed CocoScrapers or POV module; Luma does not package their provider code. MIT license covers Luma's original implementation.

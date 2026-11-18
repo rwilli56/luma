@@ -17,6 +17,7 @@ class Store:
                     duration REAL NOT NULL, completed INTEGER NOT NULL, updated REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS mapping (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS outbox (key TEXT PRIMARY KEY, value TEXT NOT NULL, version TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS search_overrides (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             ''')
 
     @contextlib.contextmanager
@@ -67,8 +68,20 @@ class Store:
     def reset(self):
         """Called only by the idle service after explicit in-app confirmation."""
         with self.connect() as db:
-            for table in ('cache', 'progress', 'mapping', 'outbox'):
+            for table in ('cache', 'progress', 'mapping', 'outbox', 'search_overrides'):
                 db.execute('DELETE FROM ' + table)
+
+    def search_override(self, key):
+        with self.connect() as db:
+            row = db.execute('SELECT value FROM search_overrides WHERE key=?', (key,)).fetchone()
+        return json.loads(row['value']) if row else {}
+
+    def save_search_override(self, key, rules):
+        with self.connect() as db:
+            if rules:
+                db.execute('INSERT OR REPLACE INTO search_overrides VALUES (?,?)', (key, json.dumps(rules)))
+            else:
+                db.execute('DELETE FROM search_overrides WHERE key=?', (key,))
 
     def save_progress(self, media, position, duration, completed=False, updated=None):
         if duration <= 0:

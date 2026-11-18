@@ -69,6 +69,15 @@ class Home(xbmcgui.WindowXML):
         self.revision = self.db.get('ui_revision')
 
     def onAction(self, action):
+        if action.getId() == 117:
+            control_id = self.getFocusId()
+            if control_id in self.rows:
+                position = self.getControl(control_id).getSelectedPosition()
+                if self.rows[control_id] and 0 <= position < len(self.rows[control_id]):
+                    self.selection = ('custom_search', self.rows[control_id][position])
+                    self.closed = True
+                    self.close()
+            return
         if action.getId() in (9, 10, 92, 216):
             self.closed = True
             self.close()

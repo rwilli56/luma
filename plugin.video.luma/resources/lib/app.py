@@ -13,7 +13,7 @@ from .torbox import TorBox
 from .emby import Emby
 from .display import configure as configure_display
 from .trakt import Trakt, SyncDeferred
-from . import filtering, preferences as prefs
+from . import filtering, preferences as prefs, search_rules
 from .resolution import resolve_selected, SourceUnavailable, account_failure
 
 BASE = 'plugin://plugin.video.luma/'
@@ -66,6 +66,8 @@ def browse(handle, action, params):
     for media in entries:
         folder = media['type'] == 'tvshow'
         item = decorate(media)
+        from .custom_search import attach as custom_context
+        custom_context(item, media, db=db)
         item.setProperty('IsPlayable', 'false' if folder else 'true')
         if not folder:
             item.addContextMenuItems([('Find sources', 'RunPlugin({})'.format(route('search', key=media['key']))),
@@ -98,11 +100,12 @@ def find_media(db, key):
 def play(handle, key):
     db = config.store()
     media = find_media(db, key)
-    sources = [s for s in media.get('sources', []) if s['ready']]
+    rules = search_rules.effective(db, media)
+    sources = [s for s in media.get('sources', []) if s['ready'] and search_rules.source_eligible(s, media, rules)]
     if not sources:
         from .search import find_sources
         history = next((i for i in home_rows(db)['continue'] if i['key'] == key), None)
-        media = find_sources(media)
+        media = find_sources(media, prefer_library=True)
         if not media:
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
             return
@@ -110,7 +113,7 @@ def play(handle, key):
         if history:
             db.save_progress(media, history['position'], history['duration'], False, history.get('updated'))
         key = media['key']
-        sources = media['sources']
+        sources = [s for s in media['sources'] if search_rules.source_eligible(s, media, rules)]
     allow_dv = prefs.get('allow_dv')
     sources = filtering.apply(sources, media['type'])
     if not sources:
@@ -153,7 +156,7 @@ def play(handle, key):
             if source['kind'] == 'emby':
                 break
             from .search import find_sources
-            next_media = find_sources(media, exclude_hashes=failed)
+            next_media = find_sources(media, exclude_hashes=failed, prefer_library=True)
             if not next_media:
                 xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
                 return
@@ -317,6 +320,10 @@ def home():
         action, media = selection
         if action == 'settings':
             settings_menu()
+        elif action == 'custom_search':
+            from .custom_search import edit
+            if edit(media) == 'play':
+                return
         elif action == 'search':
             search()
             return
@@ -378,6 +385,9 @@ def run():
             identify(params['key'])
         elif action == 'search':
             search(params.get('key'))
+        elif action == 'custom_search':
+            from .custom_search import run as run_custom_search
+            run_custom_search(params['key'])
         elif action == 'home':
             if handle >= 0:
                 xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

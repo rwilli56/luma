@@ -34,6 +34,10 @@ class Tag:
 class ListItem:
     def __init__(self, label='', **kwargs):
         self.label, self.tag, self.properties, self.path = label, Tag(), {}, ''
+        self.context_menu = []
+
+    def addContextMenuItems(self, items):
+        self.context_menu.extend(items)
 
     def getVideoInfoTag(self):
         return self.tag
@@ -239,7 +243,7 @@ class KodiHandoffTests(unittest.TestCase):
                         updated=time.time(), completed=False)
         self.db.put('library_torrents', [])
         self.db.put('trakt_snapshot', {'continue': [imported]})
-        def discover(media):
+        def discover(media, **kwargs):
             self.db.put('library_torrents', [self.media])
             return self.media
         gui.Dialog.return_value.contextmenu.return_value = 0
@@ -307,6 +311,26 @@ class HomeLaunchTests(unittest.TestCase):
         self.assertIn(104, home.controls)
         home.onClick(104)
         self.assertEqual(home.selection, ('search', None))
+
+    def test_context_action_on_dashboard_card_opens_custom_search(self):
+        media = parse_name('Show.S17E03.mkv')
+        with patch.object(ui.config, 'store', return_value=self.db):
+            home = ui.Home('Luma-Home.xml', str(ADDON_PATH), 'Default', '1080i')
+        home.getFocusId = Mock(return_value=300)
+        home.rows = {300: [media]}
+        action = Mock()
+        action.getId.return_value = 117
+        home.onAction(action)
+        self.assertEqual(home.selection, ('custom_search', media))
+        self.assertTrue(home.closed)
+
+    def test_dashboard_stays_closed_when_custom_search_starts_playback(self):
+        from resources.lib import custom_search
+        media = parse_name('Show.S17E03.mkv')
+        with patch.object(ui, 'show_home', return_value=('custom_search', media)) as show, \
+             patch.object(custom_search, 'edit', return_value='play'):
+            app.home()
+        show.assert_called_once_with()
 
 
 if __name__ == '__main__':

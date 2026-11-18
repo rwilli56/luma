@@ -11,7 +11,7 @@ from .media import flatten, identity
 from .torbox import TorBox
 from .trakt import Trakt
 from .net import ApiError
-from . import filtering, preferences as prefs
+from . import filtering, preferences as prefs, search_rules
 from . import resolution
 
 
@@ -74,14 +74,16 @@ def remember(db, transfer, selected, metadata, manual=False):
              if not any(str(s['transfer_id']) == str(transfer['id']) for s in i.get('sources', []))]
     db.put('library_torrents', prior + items)
     mapping = {k: metadata[k] for k in ('title', 'year', 'overview', 'episode_title', 'trakt', 'premiered') if k in metadata}
-    if selected['type'] != metadata['type'] or manual:
+    remapped = selected['type'] != metadata['type'] or manual or any(selected.get(k) != metadata.get(k) for k in ('season', 'episode'))
+    if remapped:
         mapping.update(type=metadata['type'], season=metadata.get('season'), episode=metadata.get('episode'),
-                       key=identity(metadata['title'], metadata.get('year'), metadata.get('season'), metadata.get('episode')),
+                       key=metadata.get('key') or identity(metadata['title'], metadata.get('year'), metadata.get('season'), metadata.get('episode')),
                        show_key=identity(metadata['title'], metadata.get('year')) if metadata['type'] == 'episode' else '')
     source = selected['sources'][0]
     manual_episode = [metadata.get('season'), metadata.get('episode')] if manual else None
     db.identify('file:{}:{}:{}'.format(source['kind'], source['transfer_id'], source['file_id']),
-                {'path': source.get('path'), 'hash': source.get('hash'), 'media': mapping, 'manual_episode': manual_episode})
+                {'path': source.get('path'), 'hash': source.get('hash'), 'media': mapping, 'manual_episode': manual_episode,
+                 'search_context': source.get('search_context'), 'release_name': source.get('release_name')})
     # Retain the existing grouping key for ordinary, already-identified filenames.
     if 'key' not in mapping:
         db.identify(selected['key'], mapping)
@@ -108,25 +110,41 @@ def episode_files(items, media):
                                                 i['sources'][0].get('transfer_name', ''))]
 
 
-def find_sources(media, exclude_hashes=None):
+def find_sources(media, exclude_hashes=None, prefer_library=False):
     # Construct before doing provider work so a missing key fails immediately.
     torbox = TorBox(config.setting('torbox_key'))
     filters = filtering.options()
     db = config.store()
+    rules = search_rules.effective(db, media)
+    query = search_rules.query_media(media, rules)
+    context = search_rules.snapshot(media, query) if rules else None
     if xbmc.Player().isPlaying():
         raise ValueError('Stop playback before searching providers.')
-    backends = [b for b in providers.installed() if b['available'] and config.setting('provider_' + b['key']) != 'false']
-    if not backends:
+    local_found = {}
+    if prefer_library and rules:
+        from .library import library, match_media
+        matched = match_media(query, library(db))
+        for source in (matched or {}).get('sources', []):
+            hash_value = providers.infohash(source.get('hash'))
+            name = source.get('release_name') or source.get('transfer_name') or source['name']
+            if source['ready'] and source['kind'] == 'torrents' and hash_value and hash_value not in (exclude_hashes or set()) and search_rules.release_matches(name, rules):
+                from .episodes import package
+                local_found[hash_value] = {'hash': hash_value, 'magnet': 'magnet:?xt=urn:btih:' + hash_value,
+                    'name': name, 'provider': 'TorBox library', 'size': source['size'], 'traits': source['traits'],
+                    'transfer_id': source['transfer_id'], 'package': package(name)}
+    backends = [] if local_found else [b for b in providers.installed() if b['available'] and config.setting('provider_' + b['key']) != 'false']
+    if not backends and not local_found:
         provider_settings()
         return None
     dialog, monitor = xbmcgui.DialogProgress(), xbmc.Monitor()
     session = None
-    cache_key = 'source_cache:' + hashlib.sha256(json.dumps(['pack-schema-2', media.get('trakt'), media['title'], media.get('year'),
+    cache_key = 'source_cache:' + hashlib.sha256(json.dumps(['search-rules-1', rules, media.get('trakt'), media['title'], media.get('year'),
         media.get('season'), media.get('episode'), [(b['key'], b.get('version'), b.get('settings_revision')) for b in backends], prefs.get('scrape_packs')], sort_keys=True).encode()).hexdigest()
-    found = db.get(cache_key, max_age=900) if prefs.get('source_cache') else None
+    found = local_found or (db.get(cache_key, max_age=900) if prefs.get('source_cache') else None)
     failures = []
     try:
-        dialog.create('Finding sources', 'Loading your enabled providers…')
+        description = 'Metadata S{:02d} E{:02d} → source S{:02d} E{:02d}'.format(media['season'], media['episode'], query['season'], query['episode']) if media['type'] == 'episode' and context else 'Loading your enabled providers…'
+        dialog.create('Finding sources', description)
         if found is None:
             tasks, failures = providers.load(backends)
             if not prefs.get('scrape_packs'):
@@ -134,7 +152,7 @@ def find_sources(media, exclude_hashes=None):
             if not tasks:
                 raise ValueError('No providers loaded. Open Search provider settings and enable torrent providers. ' +
                                  ('Could not load: ' + ', '.join(failures) if failures else ''))
-            session = providers.ScrapeSession(tasks, media, timeout=prefs.get('scrape_timeout'), workers=prefs.get('scrape_workers'))
+            session = providers.ScrapeSession(tasks, query, timeout=prefs.get('scrape_timeout'), workers=prefs.get('scrape_workers'))
             found = {}
             while True:
                 for result in session.poll():
@@ -158,15 +176,15 @@ def find_sources(media, exclude_hashes=None):
         dialog.update(85, 'Checking {} unique torrents with TorBox…'.format(len(found)))
         hits = {}
         # Bound cache checks for very broad titles on the Streamer's hardware.
-        ranked = filtering.apply([s for h, s in found.items() if h not in (exclude_hashes or set())], media['type'], filters, torrent_results=True)[:1000]
+        ranked = filtering.apply([s for h, s in found.items() if h not in (exclude_hashes or set()) and search_rules.release_matches(s['name'], rules)], media['type'], filters, torrent_results=True)[:1000]
         if not ranked:
-            raise ValueError('No sources match your Sort & Filter settings.')
+            raise ValueError('No sources match your Sort & Filter settings and custom search filters.')
         hashes = [s['hash'] for s in ranked]
         for start in range(0, len(hashes), 100):
             if dialog.iscanceled() or monitor.abortRequested() or xbmc.Player().isPlaying():
                 return None
             hits.update(torbox.cached(hashes[start:start + 100]))
-        sources = [dict(found[h], size=hits[h].get('size') or found[h]['size']) for h in hashes if h in hits]
+        sources = [dict(found[h], size=hits[h].get('size') or found[h]['size'], **({'search_context': context} if context else {})) for h in hashes if h in hits]
     finally:
         if session:
             session.stop.set()
@@ -193,10 +211,10 @@ def find_sources(media, exclude_hashes=None):
             dialog.create('Preparing playback', 'Rechecking cache and matching video files…')
             stopped = lambda: dialog.iscanceled() or monitor.abortRequested() or xbmc.Player().isPlaying()
             transfer = resolution.prepare(torbox, candidate, stopped, monitor.waitForAbort)
-            items = resolution.candidates(transfer, media)
+            items = resolution.candidates(transfer, query)
             manual = False
             if not items and media['type'] == 'episode' and prefs.get('pack_fallback'):
-                items = resolution.candidates(transfer, media, manual=True)
+                items = resolution.candidates(transfer, query, manual=True)
                 manual = bool(items)
             items = [i for i in items if filtering.apply(i['sources'], media['type'], filters)]
             if not items:
@@ -221,4 +239,7 @@ def find_sources(media, exclude_hashes=None):
         if manual and not xbmcgui.Dialog().yesno('Confirm episode file',
             'Play this file as {} S{:02d} E{:02d}?\n{}'.format(media['title'], media['season'], media['episode'], items[file_index]['sources'][0]['path'])):
             return None
+        if context:
+            items[file_index]['sources'][0]['search_context'] = context
+        items[file_index]['sources'][0]['release_name'] = candidate['name']
         return remember(db, transfer, items[file_index], media, manual)

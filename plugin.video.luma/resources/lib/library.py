@@ -32,6 +32,10 @@ def library(db):
                 entry.update(binding['media'])
                 if binding.get('manual_episode'):
                     entry['sources'][0]['manual_episode'] = binding['manual_episode']
+                if binding.get('search_context'):
+                    entry['sources'][0]['search_context'] = binding['search_context']
+                if binding.get('release_name'):
+                    entry['sources'][0]['release_name'] = binding['release_name']
             bound.append(entry)
     items = merge_library(bound)
     episodes = db.cache_prefix('episode:')

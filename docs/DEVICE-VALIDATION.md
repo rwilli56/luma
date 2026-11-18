@@ -51,6 +51,16 @@ These are pending device/account checks; automated fixtures do not establish liv
 - Start Connect Trakt without a Client ID. Verify the setup explanation and input/cancel actions, with no generic script failure. Enter your registered application's Client ID, authorize on another device and confirm successful idle sync. A full live authorization has not been performed in development because no Client ID was configured.
 - Test invalid Client IDs, incomplete activation/token responses, cancellation, pending authorization, 429 slowdown, expiry and denied/used codes. Existing tokens must survive failed reauthorization, the UI must close cleanly, and auth_pending must be cleared. Do not include activation codes, credentials or raw response bodies in shared logs.
 
+## Custom search filters (0.5.0)
+
+- On a show, season, movie, episode and each Home Dashboard row, long-press the remote select button and open **Custom search filters…**. Verify the native keyboard accepts and cancels edits correctly. Back must discard an unsaved draft; Save must persist it after restarting Kodi.
+- On metadata Bake Off season 17, save source season 10. Search an episode and verify providers receive season 10 and TorBox selects the matching `S10E..` file. A different source episode must be rejected. Display, local resume and the Trakt watched/paused entry must retain metadata season 17 and its original episode IDs.
+- Play the next episode from a ready season pack already in the TorBox library. Confirm its existing transfer is reused, availability/files are rechecked, and no new provider request or uncached download starts. Explicit **Save and find sources now** should still search providers.
+- Test show → season → episode inheritance, an episode offset, an exact episode override and specials season/episode zero. Another season and a split catalog entry sharing an IMDb ID must retain separate rules. With a shared ID, test a corrected source year, title-only mode and an explicit provider IMDb ID against real results.
+- Test required/excluded comma-separated phrases, case/dot/space normalization and `HDR10+`. Confirm global format and per-episode file-size filters still apply. Change the rules and verify old provider metadata is not reused under the new search.
+- Reset one scope and save; inherited rules must remain. Clear ordinary caches and restart; saved overrides must remain. A confirmed file mapping must still resolve after library refresh and filter reset, with progress preserved. Test full wipe only in a disposable profile.
+- Save and start a source search from a dashboard card. After selecting a source, verify the dashboard stays closed as playback starts. Edit filters during playback and confirm no provider search action is offered.
+
 ## Frame-rate and HDR matrix
 
 Set Luma's automatic frame-rate matching on. Before each test, choose a different GUI refresh rate so a successful switch is observable. Verify Kodi's settings show **On start/stop** and **Sync playback to display: Off**. Then verify the actual output with Kodi's player diagnostics and the TV's signal information where available. A multiple of the content frame rate may be selected if the exact rate is not exposed.

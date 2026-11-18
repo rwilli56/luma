@@ -8,6 +8,7 @@ from . import episodes
 from .media import flatten
 from .net import ApiError, TORBOX_ACCOUNT_CODES
 from .providers import infohash
+from . import search_rules
 
 
 class SourceUnavailable(ValueError):
@@ -42,7 +43,7 @@ def probe_link(url, opener=None):
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or '|' in url:
         raise LinkUnavailable()
-    request = Request(url, headers={'Range': 'bytes=0-0', 'Accept-Encoding': 'identity', 'User-Agent': 'Luma-Kodi/0.4.0'}, method='GET')
+    request = Request(url, headers={'Range': 'bytes=0-0', 'Accept-Encoding': 'identity', 'User-Agent': 'Luma-Kodi/0.5.0'}, method='GET')
     try:
         opener = opener or build_opener(SecureRedirects()).open
         with opener(request, timeout=5) as response:
@@ -110,6 +111,10 @@ def candidates(transfer, media, manual=False):
 
 def resolve_selected(api, source, media, check_link=True, probe=None):
     """Refresh stale file records, then generate and optionally check one CDN URL."""
+    try:
+        query = search_rules.matching_media(media, source.get('search_context'))
+    except ValueError as exc:
+        raise SourceUnavailable(str(exc)) from None
     if source['kind'] == 'torrents' and not 0 <= time.time() - source.get('verified_at', 0) <= 15:
         transfer = api.torrent(source['transfer_id'])
         expected_hash = infohash(source.get('hash'))
@@ -118,10 +123,10 @@ def resolve_selected(api, source, media, check_link=True, probe=None):
             raise SourceUnavailable('The selected torrent changed. Refresh your library.')
         if actual_hash:
             source['hash'] = actual_hash
-        possible = candidates(transfer, media)
+        possible = candidates(transfer, query)
         selected = next((i for i in possible if str(i['sources'][0]['file_id']) == str(source['file_id'])), None)
         if not selected and source.get('manual_episode') == [media.get('season'), media.get('episode')]:
-            manual = candidates(transfer, media, manual=True)
+            manual = candidates(transfer, query, manual=True)
             selected = next((i for i in manual if str(i['sources'][0]['file_id']) == str(source['file_id'])
                              and i['sources'][0]['path'] == source.get('path')), None)
         if not selected or not selected['sources'][0]['ready']:
