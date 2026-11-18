@@ -14,6 +14,7 @@ from .emby import Emby
 from .display import configure as configure_display
 from .trakt import Trakt, SyncDeferred
 from . import filtering, preferences as prefs
+from .resolution import resolve_selected, SourceUnavailable, account_failure
 
 BASE = 'plugin://plugin.video.luma/'
 
@@ -78,6 +79,9 @@ def browse(handle, action, params):
 
 
 def find_media(db, key):
+    prepared = db.get('prepared_media:' + key, max_age=15)
+    if prepared:
+        return prepared
     for entries in home_rows(db).values():
         for item in entries:
             if item['key'] == key:
@@ -141,9 +145,43 @@ def play(handle, key):
     if not ready and display_status != db.get('display_status'):
         notify('Check frame-rate matching in Kodi Player > Videos settings.')
     db.put('display_status', display_status)
-    # No metadata calls, probing, transcoding or local HTTP proxy here.
-    url = (Emby(config.setting('emby_url'), config.setting('emby_key'), config.setting('emby_user')).resolve(source)
-           if source['kind'] == 'emby' else TorBox(config.setting('torbox_key')).resolve(source))
+    # Only selected files are checked. Kodi still owns demuxing and hardware decode.
+    queue = [source] + ([s for s in sources if s is not source] if prefs.get('retry_sources') else [])
+    failed, tried, url, last_error = set(), set(), None, None
+    for attempt in range(3 if prefs.get('retry_sources') else 1):
+        if not queue:
+            if source['kind'] == 'emby':
+                break
+            from .search import find_sources
+            next_media = find_sources(media, exclude_hashes=failed)
+            if not next_media:
+                xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+                return
+            media, key = next_media, next_media['key']
+            queue = list(next_media['sources'])
+            if history:
+                db.save_progress(media, history['position'], history['duration'], False, history.get('updated'))
+        source = queue.pop(0)
+        reference = (source['kind'], source['transfer_id'], source['file_id'])
+        if reference in tried or (attempt and source['traits']['dv_only'] and not allow_dv):
+            continue
+        tried.add(reference)
+        try:
+            url = (Emby(config.setting('emby_url'), config.setting('emby_key'), config.setting('emby_user')).resolve(source)
+                   if source['kind'] == 'emby' else resolve_selected(TorBox(config.setting('torbox_key')), source, media, check_link=prefs.get('verify_links')))
+            break
+        except (SourceUnavailable, ApiError) as exc:
+            if account_failure(exc):
+                raise
+            if getattr(exc, 'status', 0) == 429:
+                raise ValueError('TorBox playback requests are rate limited. Try again later.') from None
+            last_error = exc
+            if source.get('hash'):
+                failed.add(source['hash'].lower())
+            if attempt < 2 and prefs.get('retry_sources'):
+                notify('Source unavailable. Checking another source.')
+    if not url:
+        raise last_error or SourceUnavailable('No playable source remained. Refresh or try another source.')
     if history and history.get('trakt'):
         media['trakt'] = history['trakt']
     item = decorate(media)
@@ -157,12 +195,24 @@ def play(handle, key):
 
 
 def connect_trakt(db):
-    trakt = Trakt(db, config.setting('trakt_client_id'), config.setting('trakt_client_secret'))
+    client_id = config.setting('trakt_client_id').strip()
+    if not client_id:
+        if not xbmcgui.Dialog().yesno('Set up Trakt',
+            'Create your own API application at https://app.trakt.tv/settings/apps, then enter its Client ID. Luma needs that application ID before it can display an activation code.',
+            nolabel='Cancel', yeslabel='Enter Client ID'):
+            return
+        client_id = xbmcgui.Dialog().input('Trakt application Client ID').strip()
+        if not client_id:
+            return
+        config.addon().setSetting('trakt_client_id', client_id)
+    trakt = Trakt(db, client_id, config.setting('trakt_client_secret'))
     db.put('auth_pending', True)
     dialog = xbmcgui.DialogProgress()
+    created = False
     try:
         code = trakt.device_code()
         dialog.create('Connect Trakt', '{}\nCode: {}'.format(code['verification_url'], code['user_code']))
+        created = True
         deadline = time.monotonic() + code['expires_in']
         interval = max(5, code['interval'])
         monitor = xbmc.Monitor()
@@ -170,7 +220,11 @@ def connect_trakt(db):
             for _ in range(interval):
                 if monitor.waitForAbort(1) or dialog.iscanceled():
                     return
+                if time.monotonic() >= deadline or xbmc.Player().isPlaying():
+                    notify('Trakt code expired or sign-in stopped. Connect again when playback is idle.')
+                    return
             try:
+                db.put('auth_pending', True)
                 trakt.device_token(code['device_code'])
                 db.clear_cache(('catalog:', 'menu_object:', 'catalog_media:', 'trakt_lists', 'trakt_snapshot', 'show_progress_'))
                 db.put('trakt_status', 'Connected · syncing your history')
@@ -178,16 +232,23 @@ def connect_trakt(db):
                 notify('Trakt connected')
                 return
             except ApiError as exc:
-                if exc.status == 400:
+                if exc.code == 'invalid_client':
+                    raise ValueError('Trakt rejected the application Client ID. Check Accounts settings and try again.') from None
+                if exc.status == 400 and exc.code in ('', 'authorization_pending'):
                     continue
-                if exc.status == 429:
+                if exc.status == 429 or exc.code == 'slow_down':
                     interval = max(interval + 5, exc.retry_after)
                     continue
+                if exc.status in (404, 409, 410, 418) or exc.code in ('access_denied', 'expired_token', 'invalid_code'):
+                    raise ValueError('Trakt activation was declined, expired or already used. Choose Connect Trakt to get a new code.') from None
                 raise
         notify('Trakt connection cancelled or expired')
     finally:
-        dialog.close()
-        db.put('auth_pending', False)
+        try:
+            if created:
+                dialog.close()
+        finally:
+            db.put('auth_pending', False)
 
 
 def identify(key):
@@ -335,11 +396,13 @@ def run():
         elif action == 'menu':
             xbmcplugin.endOfDirectory(handle, succeeded=False, cacheToDisc=False)
         xbmcgui.Dialog().ok('Luma', str(exc))
-    except Exception:
+    except Exception as exc:
         if action in ('play', 'catalog_play'):
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
         elif action == 'menu':
             xbmcplugin.endOfDirectory(handle, succeeded=False, cacheToDisc=False)
         # Kodi debug logs are frequently shared; never log raw API exceptions.
-        xbmc.log('Luma: operation failed in {}'.format(action), xbmc.LOGERROR)
+        import traceback
+        frame = traceback.extract_tb(exc.__traceback__)[-1]
+        xbmc.log('Luma: operation failed in {} ({} at {}:{})'.format(action, type(exc).__name__, frame.name, frame.lineno), xbmc.LOGERROR)
         xbmcgui.Dialog().ok('Luma', 'Unable to complete this action. Refresh your library and try again.')

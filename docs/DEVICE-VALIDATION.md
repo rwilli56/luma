@@ -39,6 +39,18 @@ These are pending device/account checks; automated fixtures do not establish liv
 - Use Clear Cache / Clear Local Torrent Cache / Clear Search History and each Trakt sync tool. Confirm local resume, mappings and unsent updates survive ordinary cache/sync maintenance. Test Wipe Addon Data only with a disposable Kodi profile; declining confirmation must preserve all data, and accepting must reset local data/settings without remote deletions.
 - Verify all settings labels, choices, slider bounds, help text, password fields and operational buttons in Kodi 21.3. Automated XML checks do not replace this native settings check.
 
+## Source validation, packs and Trakt login (0.4.0)
+
+- Recheck a selected hash after it disappears from TorBox cache. It must not start an uncached download. Test upper/lowercase duplicate hashes and a malformed/mismatched cache response.
+- Test `S02E03`, `2x03`, `Season 2 Episode 3`, `Season 2/E03` and `Season 2/03 - Title` filenames inside a real pack. Include a multi-season pack, duplicate episode basenames in different season folders, samples, extras and a Blu-ray stream subfolder. Confirm exact file IDs and exclusion of incorrect episodes/segments.
+- Test a daily episode with its real air date in the filename. A different file date or a date appearing only in a parent folder must not select that file. Combined episodes must not become a single ordinary resume item.
+- Test a pack with unknown filenames: selection and episode confirmation must both be required. Declining must not bind metadata or start playback. Refresh the library/restart Kodi and verify a confirmed binding survives without affecting an identically named file in another transfer.
+- Confirm a source with explicit 1080p/SDR naming inside a 4K/HDR folder retains its file-level hints. Check the per-episode size limit against the selected file rather than the pack total.
+- Enable selected-link checking and inspect redacted network diagnostics: no bulk HEAD/GET stream probes; one selected Range request reads at most one body byte. Test a Range-ignoring server, HTML/JSON errors, empty responses, HTTPS redirects, expired CDN URLs and a missing file. Verify the response is closed before native playback starts. Test disabling the option too.
+- Fail a selected source and verify another eligible source can resolve, with the failed hash excluded from a replacement search. Account errors and rate limits must stop retries. Repeat the 4K seek/buffering/frame-rate matrix after these checks; one-byte availability is not a throughput test.
+- Start Connect Trakt without a Client ID. Verify the setup explanation and input/cancel actions, with no generic script failure. Enter your registered application's Client ID, authorize on another device and confirm successful idle sync. A full live authorization has not been performed in development because no Client ID was configured.
+- Test invalid Client IDs, incomplete activation/token responses, cancellation, pending authorization, 429 slowdown, expiry and denied/used codes. Existing tokens must survive failed reauthorization, the UI must close cleanly, and auth_pending must be cleared. Do not include activation codes, credentials or raw response bodies in shared logs.
+
 ## Frame-rate and HDR matrix
 
 Set Luma's automatic frame-rate matching on. Before each test, choose a different GUI refresh rate so a successful switch is observable. Verify Kodi's settings show **On start/stop** and **Sync playback to display: Off**. Then verify the actual output with Kodi's player diagnostics and the TV's signal information where available. A multiple of the content frame rate may be selected if the exact rate is not exposed.

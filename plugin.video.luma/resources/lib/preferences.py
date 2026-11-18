@@ -29,6 +29,7 @@ SCHEMA = [
   ('scrape_timeout', 'Provider dispatch timeout (seconds)', 'int', 20, 'Stops starting tasks at this limit. Active third-party requests may finish later.', (5, 60, 5)),
   ('scrape_workers', 'Concurrent provider tasks', 'int', 4, 'Four or fewer is recommended for Google TV Streamer.', (1, 4, 1)),
   ('scrape_packs', 'Search season packs', 'bool', True, 'The requested episode must be identified inside the selected pack.'),
+  ('pack_fallback', 'Offer manual selection for unrecognized pack filenames', 'bool', True, 'Requires explicit file confirmation. Files identifying a different episode, date or combined episodes are excluded.'),
   ('source_cache', 'Cache provider results locally', 'bool', True, 'Reuses torrent metadata for 15 minutes. TorBox availability is checked fresh each time.'),
  ]),
  ('filters', 'Sort & Filter', [
@@ -45,6 +46,8 @@ SCHEMA = [
   ('movie_playstyle', 'Movie source selection', 'enum', 'select', 'Automatic selects the first preferred cached source.', [('select', 'Choose source'), ('auto', 'Automatic')]),
   ('episode_playstyle', 'Episode source selection', 'enum', 'select', 'Applies to source search and library playback.', [('select', 'Choose source'), ('auto', 'Automatic')]),
   ('resume_style', 'Resume behaviour', 'enum', 'ask', 'Applies when a saved resume point exists.', [('ask', 'Ask'), ('resume', 'Resume automatically'), ('beginning', 'Play from beginning')]),
+  ('verify_links', 'Check the selected TorBox playback link', 'bool', True, 'Uses a 5-second network timeout and reads at most one body byte. Redirects can add time. No bulk stream probing or codec inspection.'),
+  ('retry_sources', 'Try another source when preparation or resolution fails', 'bool', True, 'Limits preparation and playback resolution to three attempts per stage. Account and rate-limit errors stop retries. Decoder failures after playback starts remain Kodi’s responsibility.'),
   ('watched_percent', 'Mark watched at (%)', 'int', 90, 'Controls local completion and outbound Trakt updates.', (70, 99, 1)),
   ('manage_refresh', 32007, 'bool', True, 32017),
   ('allow_dv', 32005, 'bool', False, 32015),

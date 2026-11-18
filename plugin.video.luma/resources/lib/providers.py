@@ -14,6 +14,7 @@ import threading
 import time
 from urllib.parse import parse_qs, urlsplit
 from .media import EPISODE, parse_name, traits
+from . import episodes
 
 BACKENDS = (
     ('coco', 'CocoScrapers', 'script.module.cocoscrapers', 'cocoscrapers'),
@@ -93,7 +94,7 @@ def infohash(value):
     return None
 
 
-def normalize(result, provider, media):
+def normalize(result, provider, media, pack=False):
     if not isinstance(result, dict) or result.get('source', '').lower() != 'torrent':
         return None
     hash_value, url_hash = infohash(result.get('hash')), infohash(result.get('url'))
@@ -104,14 +105,17 @@ def normalize(result, provider, media):
     if not hash_value or not isinstance(name, str) or not name.strip():
         return None
     parsed = parse_name(name + '.mkv')
-    if parsed['ambiguous']:
+    package = episodes.package(name, result.get('package')) or ('season' if pack else None)
+    info = episodes.inspect(name)
+    if parsed['ambiguous'] and not package:
         return None
     if media['type'] == 'episode':
-        if EPISODE.search(name.replace('_', ' ')) and (parsed['season'], parsed['episode']) != (media['season'], media['episode']):
+        scope = episodes.seasons(name)
+        if scope and media['season'] not in scope:
             return None
-        # Packs are allowed, but a different explicitly named season is not.
-        season = re.search(r'(?i)(?:\bS|\bSeason[ ._-]*)(\d{1,2})(?:\b|E)', name.replace('_', ' '))
-        if season and int(season.group(1)) != media['season']:
+        if not package and info['explicit'] and not episodes.matches(name, media):
+            return None
+        if not package and info['dates'] and not episodes.matches(name, media):
             return None
     elif parsed['type'] == 'episode' or (parsed['year'] and media.get('year') and parsed['year'] != media['year']):
         return None
@@ -122,7 +126,7 @@ def normalize(result, provider, media):
         size = 0
     return {'hash': hash_value, 'magnet': 'magnet:?xt=urn:btih:' + hash_value,
             'name': name[:1000], 'provider': provider, 'size': size,
-            'traits': traits(name + ' ' + str(result.get('quality', '')))}
+            'traits': traits(name + ' ' + str(result.get('quality', ''))), 'package': package}
 
 
 class ScrapeSession:
@@ -161,7 +165,7 @@ class ScrapeSession:
                 else:
                     raw = getattr(scraper, method)(query_data(self.media, remaining), {}) or []
                 for item in raw[:2000]:
-                    value = normalize(item, label, self.media)
+                    value = normalize(item, label, self.media, pack=method == 'sources_packs')
                     if value:
                         items.append(value)
             except Exception:

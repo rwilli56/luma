@@ -1,5 +1,5 @@
 from urllib.parse import urlsplit
-from .net import ApiError, Http
+from .net import ApiError, Http, KNOWN_ERROR_CODES
 
 
 class TorBox:
@@ -16,7 +16,9 @@ class TorBox:
             raise SyncDeferred()
         response = self.http.request(method, path, **kwargs)
         if not isinstance(response, dict) or response.get('success') is not True:
-            raise ApiError('TorBox')
+            code = response.get('error') if isinstance(response, dict) else ''
+            code = code if isinstance(code, str) and code in KNOWN_ERROR_CODES else ''
+            raise ApiError('TorBox', code=code)
         return response.get('data')
 
     def library(self, kind):
@@ -47,8 +49,11 @@ class TorBox:
 
     def cached(self, hashes):
         """Return only explicit cache hits, in bounded batches."""
+        from .providers import infohash
         hits = {}
-        hashes = list(dict.fromkeys(hashes))
+        hashes = list(dict.fromkeys(infohash(h) for h in hashes))
+        if None in hashes:
+            raise ValueError('Invalid torrent hash in source results.')
         for start in range(0, len(hashes), 100):
             batch = hashes[start:start + 100]
             data = self._call('GET', 'torrents/checkcached', params={'hash': batch, 'format': 'object'})
@@ -56,11 +61,16 @@ class TorBox:
                 rows = [(key, value) for key, value in data.items() if isinstance(value, dict)]
             elif isinstance(data, list):
                 rows = [(value.get('hash', ''), value) for value in data if isinstance(value, dict)]
+            elif data is None:
+                rows = []
             else:
                 raise ApiError('TorBox')
             for key, value in rows:
-                key = key.lower()
-                if key in batch and value and value.get('cached') is not False:
+                key = infohash(key)
+                response_hash = infohash(value.get('hash')) if value.get('hash') else key
+                explicit = bool(value.get('hash')) or value.get('cached') is True or isinstance(value.get('name'), str) and bool(value['name'])
+                valid_state = 'cached' not in value or value['cached'] is True
+                if key in batch and response_hash == key and explicit and valid_state:
                     hits[key] = value
         return hits
 

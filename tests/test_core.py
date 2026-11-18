@@ -252,14 +252,14 @@ class TraktTests(StoreCase):
     def test_rotating_refresh_token_replaced(self):
         self.db.put('trakt_tokens', {'access_token': 'old', 'refresh_token': 'old-refresh', 'created_at': 0, 'expires_in': 1})
         auth = Mock()
-        auth.request.return_value = {'access_token': 'new', 'refresh_token': 'new-refresh', 'created_at': time.time(), 'expires_in': 6000}
+        auth.request.return_value = {'access_token': 'new', 'refresh_token': 'new-refresh', 'created_at': int(time.time()), 'expires_in': 6000}
         client = Trakt(self.db, 'id', auth=auth)
         self.assertEqual(client._token(), 'new')
         self.assertEqual(self.db.get('trakt_tokens')['refresh_token'], 'new-refresh')
 
     def test_device_auth_no_bundled_secret(self):
         auth = Mock()
-        auth.request.return_value = {'access_token': 'new'}
+        auth.request.return_value = {'access_token': 'new', 'refresh_token': 'refresh', 'created_at': int(time.time()), 'expires_in': 6000}
         Trakt(self.db, 'id', auth=auth).device_token('code')
         self.assertEqual(auth.request.call_args.kwargs['body'], {'client_id': 'id', 'code': 'code'})
 

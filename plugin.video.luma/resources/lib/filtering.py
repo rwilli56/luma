@@ -26,7 +26,7 @@ def apply(sources, media_type, settings=None, torrent_results=False):
         if settings['exclude_dv'] and hint['dv_only'] or settings['exclude_av1'] and hint['codec'] == 'AV1':
             continue
         size_limit = settings['movie_size' if media_type == 'movie' else 'episode_size']
-        pack = torrent_results and media_type == 'episode' and not EPISODE.search(name.replace('_', ' '))
+        pack = torrent_results and media_type == 'episode' and (source.get('package') or not EPISODE.search(name.replace('_', ' ')))
         if size_limit and not pack and source.get('size', 0) > size_limit * 1e9:
             continue
         result.append(source)

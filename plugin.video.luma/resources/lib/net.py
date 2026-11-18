@@ -7,14 +7,24 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+TORBOX_ACCOUNT_CODES = {'NO_AUTH', 'BAD_TOKEN', 'AUTH_ERROR', 'PLAN_RESTRICTED_FEATURE', 'MONTHLY_LIMIT', 'COOLDOWN_LIMIT', 'ACTIVE_LIMIT'}
+KNOWN_ERROR_CODES = TORBOX_ACCOUNT_CODES | {'DOWNLOAD_TOO_LARGE', 'ITEM_NOT_FOUND', 'authorization_pending', 'slow_down',
+    'access_denied', 'expired_token', 'invalid_grant', 'invalid_client', 'invalid_request', 'invalid_code'}
+
 
 class ApiError(Exception):
-    def __init__(self, service, status=0, retry_after=0):
+    def __init__(self, service, status=0, retry_after=0, code=''):
         self.status = status
         self.retry_after = retry_after
+        self.code = code
         messages = {401: 'Please reconnect your account.', 403: 'Access denied. Check your account and API permissions.',
                     429: 'Rate limit reached. Please try again later.'}
-        super().__init__('{}: {}'.format(service, messages.get(status, 'Request failed. Please try again.')))
+        detail = messages.get(status, 'Request failed. Please try again.')
+        if code in TORBOX_ACCOUNT_CODES:
+            detail = 'Account access or transfer limit reached. Check your TorBox key, plan and dashboard.'
+        elif code == 'DOWNLOAD_TOO_LARGE':
+            detail = 'This transfer exceeds the account file-size limit. Choose a smaller source.'
+        super().__init__('{}: {}'.format(service, detail))
 
 
 def multipart(fields):
@@ -36,7 +46,7 @@ class Http:
         url = self.base + '/' + path.lstrip('/')
         if params:
             url += '?' + urlencode(params, doseq=True)
-        request_headers = {'Accept': 'application/json', 'User-Agent': 'Luma-Kodi/0.3.0'}
+        request_headers = {'Accept': 'application/json', 'User-Agent': 'Luma-Kodi/0.4.0'}
         request_headers.update(self.headers)
         request_headers.update(headers or {})
         data = None
@@ -60,11 +70,20 @@ class Http:
                     retry = min(3600, max(1, int(exc.headers.get('Retry-After', '30'))))
                 except (TypeError, ValueError):
                     retry = 30
+                # Keep only recognized OAuth identifiers, never raw response text.
+                code = ''
+                try:
+                    payload = json.loads(exc.read(4096).decode('utf-8'))
+                    candidate = payload.get('error', '') if isinstance(payload, dict) else ''
+                    if isinstance(candidate, str) and candidate in KNOWN_ERROR_CODES:
+                        code = candidate
+                except (ValueError, UnicodeError, OSError):
+                    pass
                 exc.close()
                 if exc.code in (502, 503, 504) and attempt + 1 < attempts:
                     self.sleeper(0.3)
                     continue
-                raise ApiError(self.service, exc.code, retry) from None
+                raise ApiError(self.service, exc.code, retry, code) from None
             except (URLError, socket.timeout, TimeoutError, OSError):
                 if attempt + 1 < attempts:
                     self.sleeper(0.3)

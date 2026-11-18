@@ -156,6 +156,9 @@ class KodiHandoffTests(unittest.TestCase):
             'name': 'video.mkv', 'size': 10, 'traits': traits('2160p HDR10 AAC')}]
         self.db.put('library_torrents', [self.media])
         plugin.setResolvedUrl.reset_mock()
+        resolver = patch.object(app, 'resolve_selected', side_effect=lambda api, source, media, check_link=True: api.resolve(source))
+        self.resolve_mock = resolver.start()
+        self.addCleanup(resolver.stop)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -196,6 +199,39 @@ class KodiHandoffTests(unittest.TestCase):
             app.play(10, self.media['key'])
         self.assertEqual(plugin.setResolvedUrl.call_args.args[2].properties['StartOffset'], '450.0')
         gui.Dialog.return_value.contextmenu.assert_not_called()
+
+    def test_unavailable_selected_link_falls_back_to_another_ready_copy(self):
+        from resources.lib.resolution import SourceUnavailable
+        sources = self.media['sources']
+        sources.append(dict(sources[0], file_id=3, name='second.mkv'))
+        self.db.put('library_torrents', [self.media])
+        gui.Dialog.return_value.select.return_value = 0
+        self.resolve_mock.side_effect = [SourceUnavailable('stale link'), 'https://cdn.test/second']
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'):
+            app.play(10, self.media['key'])
+        self.assertEqual(self.resolve_mock.call_count, 2)
+        self.assertEqual(plugin.setResolvedUrl.call_args.args[2].path, 'https://cdn.test/second')
+
+    def test_account_error_does_not_try_more_sources(self):
+        from resources.lib.net import ApiError
+        self.resolve_mock.side_effect = ApiError('TorBox', 401)
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'):
+            with self.assertRaises(ApiError):
+                app.play(10, self.media['key'])
+        self.assertEqual(self.resolve_mock.call_count, 1)
+
+    def test_failed_torrent_hash_is_excluded_from_replacement_search(self):
+        from resources.lib import search
+        from resources.lib.resolution import SourceUnavailable
+        hash_value = 'a' * 40
+        self.media['sources'][0]['hash'] = hash_value
+        self.db.put('library_torrents', [self.media])
+        self.resolve_mock.side_effect = SourceUnavailable('stale link')
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'), \
+             patch.object(search, 'find_sources', return_value=None) as find:
+            app.play(10, self.media['key'])
+        self.assertEqual(find.call_args.kwargs['exclude_hashes'], {hash_value})
+        self.assertFalse(plugin.setResolvedUrl.call_args.args[1])
 
     def test_unavailable_resume_survives_new_filename_key(self):
         from resources.lib import search

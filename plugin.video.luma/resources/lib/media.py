@@ -2,6 +2,7 @@
 import hashlib
 import os
 import re
+import math
 
 VIDEO_EXTENSIONS = {'.mkv', '.mp4', '.m4v', '.mov', '.avi', '.ts', '.m2ts', '.webm'}
 EPISODE = re.compile(r'(?i)(?:\bS(\d{1,2})[ ._-]*E(\d{1,3})\b|\b(\d{1,2})x(\d{2,3})\b)')
@@ -18,17 +19,17 @@ def identity(title, year=None, season=None, episode=None):
 
 
 def parse_name(filename, parent=''):
-    stem = os.path.splitext(filename.replace('\\', '/').rsplit('/', 1)[-1])[0]
+    from . import episodes
+    path = '/'.join(episodes.path_parts(filename))
+    stem = os.path.splitext(path.rsplit('/', 1)[-1])[0]
     text = stem.replace('.', ' ').replace('_', ' ')
-    # S01E01E02 and episode ranges cannot safely be represented by one resume point.
-    ambiguous = bool(re.search(r'(?i)S\d{1,2}E\d{1,3}(?:E\d{1,3}\b|\s*-\s*E?\d{1,3}\b)', text))
-    match = EPISODE.search(text)
-    season = episode = None
-    if match:
-        season, episode = int(match.group(1) or match.group(3)), int(match.group(2) or match.group(4))
-        title = text[:match.start()].strip(' -[]()')
+    info = episodes.inspect(path, parent)
+    ambiguous = info['ambiguous'] or info['conflict']
+    season, episode = info['season'], info['episode']
+    if season is not None:
+        title = text[:info['offset']].strip(' -[]()') if info['offset'] is not None else ''
         if not title:
-            title = re.split(r'(?i)\b(?:S\d{1,2}|Season)\b', parent.replace('.', ' '))[0].strip(' -[]()')
+            title = episodes.parent_title(path, parent)
     else:
         quality = QUALITY.search(text)
         title = text[:quality.start()] if quality else text
@@ -38,8 +39,8 @@ def parse_name(filename, parent=''):
         title = title[:year_match.start()]
     title = title.strip(' -[]()') or stem
     return {'key': identity(title, year, season, episode), 'title': title, 'year': year,
-            'season': season, 'episode': episode, 'type': 'episode' if match else 'movie',
-            'show_key': identity(title, year) if match else '', 'ambiguous': ambiguous}
+            'season': season, 'episode': episode, 'type': 'episode' if season is not None else 'movie',
+            'show_key': identity(title, year) if season is not None else '', 'ambiguous': ambiguous}
 
 
 def traits(name):
@@ -64,20 +65,47 @@ def source_rank(source, allow_dv=False, lossless=False):
     return (compatible, audio, hint['resolution'], {'HDR10+': 3, 'HDR10': 2, 'DV': 1}.get(hint['hdr'], 0))
 
 
+def file_traits(name, parent=''):
+    hint, fallback = traits(name), traits(parent)
+    for key, empty in (('resolution', 0), ('audio', 'Audio unknown'), ('codec', '')):
+        if hint[key] == empty:
+            hint[key] = fallback[key]
+    if hint['hdr'] == 'SDR / unknown' and not re.search(r'(?i)(?<![a-z])sdr(?![a-z])', name):
+        hint['hdr'], hint['dv_only'] = fallback['hdr'], fallback['dv_only']
+    return hint
+
+
 def flatten(transfers, kind):
+    from . import episodes
     result = []
     for transfer in transfers:
+        if not isinstance(transfer, dict) or transfer.get('id') is None:
+            continue
         ready = transfer.get('download_finished') is True and transfer.get('download_present') is True
         for file in transfer.get('files') or []:
-            name = file.get('short_name') or file.get('name') or ''
-            if os.path.splitext(name)[1].lower() not in VIDEO_EXTENSIONS or re.search(r'(?i)(?:^|[ ._/-])sample(?:[ ._/-]|$)', name):
+            if not isinstance(file, dict) or file.get('id') is None:
                 continue
-            media = parse_name(name, transfer.get('name', ''))
+            path = file.get('name') or file.get('short_name') or ''
+            name = file.get('short_name') or episodes.path_parts(path)[-1]
+            parent = transfer.get('name') or ''
+            if not isinstance(parent, str):
+                parent = ''
+            if not isinstance(path, str) or not isinstance(name, str):
+                continue
+            if os.path.splitext(name)[1].lower() not in VIDEO_EXTENSIONS or episodes.is_disc_segment(path) or episodes.is_extra(path, episodes.parent_title('', parent)):
+                continue
+            media = parse_name(path, parent)
             if media['ambiguous']:
                 continue
+            try:
+                size = float(file.get('size') or 0)
+                size = size if math.isfinite(size) and size >= 0 else 0
+            except (ValueError, TypeError):
+                size = 0
             source = {'kind': kind, 'transfer_id': transfer['id'], 'file_id': file['id'],
-                      'name': name, 'size': file.get('size', 0), 'ready': ready,
-                      'traits': traits(name), 'state': transfer.get('download_state', 'unknown')}
+                      'name': name, 'size': size, 'ready': ready,
+                      'traits': file_traits(name, parent), 'state': transfer.get('download_state', 'unknown'),
+                      'path': path, 'transfer_name': parent, 'hash': transfer.get('hash', '')}
             media['sources'] = [source]
             result.append(media)
     return result

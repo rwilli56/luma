@@ -280,12 +280,13 @@ class SearchPlaybackTests(unittest.TestCase):
 
     def test_duplicate_search_to_native_player_without_stored_cdn_urls(self):
         selected = self.discover()
-        self.client.cached.assert_called_once_with([HASH])
+        self.assertEqual(self.client.cached.call_count, 2)
+        self.assertTrue(all(c.args == ([HASH],) for c in self.client.cached.call_args_list))
         self.client.add.assert_called_once_with('magnet:?xt=urn:btih:' + HASH, cached_only=True)
         self.assertNotIn('secret', str(self.queries))
         app = self.kodi.app
         with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='secret'), \
-             patch.object(app, 'TorBox') as client:
+             patch.object(app, 'resolve_selected', side_effect=lambda api, source, media, check_link=True: api.resolve(source)), patch.object(app, 'TorBox') as client:
             client.return_value.resolve.return_value = 'https://cdn.test/fresh-signed-url'
             app.play(10, selected['key'])
         self.assertTrue(self.kodi.plugin.setResolvedUrl.call_args.args[1])
@@ -318,13 +319,27 @@ class SearchPlaybackTests(unittest.TestCase):
             self.assertEqual(len(self.queries), 2)
             self.discover()
         self.assertEqual(len(self.queries), 2)
-        self.assertEqual(self.client.cached.call_count, 2)
+        self.assertEqual(self.client.cached.call_count, 4)
 
     def test_automatic_source_selection_avoids_source_dialog(self):
         from resources.lib import preferences as prefs
         with patch.object(prefs, 'get', side_effect=lambda k: 'auto' if k == 'movie_playstyle' else prefs.DEFAULTS[k]):
             self.assertIsNotNone(self.discover())
         self.dialog.select.assert_not_called()
+
+    def test_irregular_pack_file_requires_confirmation_before_binding(self):
+        from resources.lib import preferences as prefs
+        self.client.torrent.return_value = {'id': 8, 'download_finished': True, 'download_present': True,
+            'name': 'Example.Show.Complete.Series', 'files': [{'id': 4, 'name': 'Unidentified.mkv', 'size': 1e9}]}
+        self.client.cached.return_value = {HASH: {'size': 1e9}}
+        # Exercise the same UI flow as discovery, with an episode rather than a movie.
+        original = globals()['movie']
+        media = dict(original(), type='episode', season=2, episode=3)
+        self.dialog.yesno.return_value = False
+        with patch.dict(globals(), movie=lambda: media), \
+             patch.object(prefs, 'get', side_effect=lambda k: prefs.DEFAULTS[k]):
+            self.assertIsNone(self.discover())
+        self.assertEqual(self.db.mappings(), {})
 
 
 if __name__ == '__main__':

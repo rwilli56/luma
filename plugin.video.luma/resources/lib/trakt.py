@@ -2,6 +2,7 @@
 import datetime
 import json
 import time
+from urllib.parse import urlsplit
 from .media import identity, normalized
 from .net import ApiError, Http
 
@@ -31,15 +32,16 @@ def media_from_trakt(obj, show=None):
             'season': season, 'episode': episode, 'type': 'episode' if show else 'movie',
             'show_key': identity(title, year) if show else '',
             'episode_title': obj.get('title') if show else '', 'overview': obj.get('overview', ''),
+            'premiered': (obj.get('first_aired') or '')[:10] if show else '',
             'trakt': {'ids': obj['ids'], 'show_ids': show['ids'] if show else {},
                       'images': (show or obj).get('images', {})}}
 
 
 class Trakt:
     def __init__(self, db, client_id, client_secret='', http=None, auth=None, should_defer=None, allow_refresh=True):
-        self.db, self.client_id, self.client_secret = db, client_id, client_secret
-        self.http = http or Http('https://api.trakt.tv', 'Trakt', {'trakt-api-version': '2', 'trakt-api-key': client_id})
-        self.auth = auth or Http('https://auth.trakt.tv', 'Trakt login')
+        self.db, self.client_id, self.client_secret = db, client_id.strip(), client_secret.strip()
+        self.http = http or Http('https://api.trakt.tv', 'Trakt', {'trakt-api-version': '2', 'trakt-api-key': self.client_id})
+        self.auth = auth or Http('https://auth.trakt.tv', 'Trakt login', {'trakt-api-version': '2', 'trakt-api-key': self.client_id})
         self.should_defer = should_defer or (lambda: False)
         self.allow_refresh = allow_refresh
 
@@ -56,12 +58,34 @@ class Trakt:
     def device_code(self):
         if not self.client_id:
             raise ValueError('Add your Trakt application Client ID in Luma settings first.')
-        return self.auth.request('POST', '/oauth/device/code', body={'client_id': self.client_id})
+        try:
+            data = self.auth.request('POST', '/oauth/device/code', body={'client_id': self.client_id})
+        except ApiError as exc:
+            if exc.status in (400, 401, 403) or exc.code == 'invalid_client':
+                raise ValueError('Trakt rejected this application Client ID. Enter the Client ID from your Trakt API app, not an activation code or website URL.') from None
+            raise
+        if not isinstance(data, dict):
+            raise ValueError('Trakt returned an invalid activation response. Try connecting again.')
+        url = data.get('verification_url') or data.get('verification_uri')
+        if (not all(isinstance(data.get(k), str) and data[k] for k in ('device_code', 'user_code'))
+                or not isinstance(url, str) or urlsplit(url).scheme != 'https' or not urlsplit(url).hostname
+                or not all(type(data.get(k)) is int and data[k] > 0 for k in ('expires_in', 'interval'))):
+            raise ValueError('Trakt returned incomplete activation details. Check your application Client ID and retry.')
+        return dict(data, verification_url=url)
 
     def device_token(self, code):
         token = self.auth.request('POST', '/oauth/device/token', body=dict(self.credentials(), code=code))
-        self.db.put('trakt_tokens', token)
-        return token
+        return self.save_token(token)
+
+    def save_token(self, token):
+        if (not isinstance(token, dict)
+                or not all(isinstance(token.get(k), str) and token[k] for k in ('access_token', 'refresh_token'))
+                or type(token.get('expires_in')) is not int or token['expires_in'] <= 0
+                or type(token.get('created_at')) is not int or token['created_at'] < 0):
+            raise ValueError('Trakt returned an incomplete sign-in token. Your existing connection has been kept. Try connecting again.')
+        safe = {k: token[k] for k in ('access_token', 'refresh_token', 'expires_in', 'created_at', 'scope', 'token_type') if k in token}
+        self.db.put('trakt_tokens', safe)
+        return safe
 
     def _token(self, force=False):
         token = self.db.get('trakt_tokens', {})
@@ -79,8 +103,7 @@ class Trakt:
                 if exc.status == 400:
                     raise ValueError('Please reconnect Trakt from Luma settings.') from None
                 raise
-            self.db.put('trakt_tokens', refreshed)
-            token = refreshed
+            token = self.save_token(refreshed)
         return token['access_token']
 
     def call(self, method, path, params=None, body=None, authenticated=True):
