@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="repository.luma" name="Luma Repository" version="0.1.0" provider-name="Luma">
+<addon id="repository.luma" name="Luma Repository" version="0.1.1" provider-name="Luma">
+  <requires><import addon="xbmc.addon" version="12.0.0"/></requires>
   <extension point="xbmc.addon.repository" name="Luma Repository">
-    <dir minversion="21.0.0">
+    <dir>
       <info compressed="false">{{BASE_URL}}/addons.xml</info>
       <checksum>{{BASE_URL}}/addons.xml.md5</checksum>
       <datadir zip="true">{{BASE_URL}}/</datadir>

@@ -9,11 +9,11 @@ An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-f
 **Kodi source:** [https://rwilli56.github.io/luma/](https://rwilli56.github.io/luma/)
 
 1. In Kodi's **File manager → Add source**, enter `https://rwilli56.github.io/luma/` and name it `Luma`.
-2. Choose **Add-ons → Install from zip file → Luma → repository.luma-0.1.0.zip**. Enable unknown sources if Kodi asks.
+2. Choose **Add-ons → Install from zip file → Luma → repository.luma-0.1.1.zip**. Enable unknown sources if Kodi asks.
 3. Choose **Install from repository → Luma Repository → Video add-ons → Luma → Install**.
 4. Open Luma's Settings and enter your TorBox key. Optional Trakt and Emby setup is described below.
 
-[Download the repository ZIP](https://rwilli56.github.io/luma/repository.luma-0.1.0.zip) · [Source code](https://github.com/rwilli56/luma) · [Publishing guide](docs/GITHUB-REPOSITORY.md)
+[Download the repository ZIP](https://rwilli56.github.io/luma/repository.luma-0.1.1.zip) · [Source code](https://github.com/rwilli56/luma) · [Publishing guide](docs/GITHUB-REPOSITORY.md)
 
 For a direct local installation without the repository:
 

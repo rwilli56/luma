@@ -23,6 +23,11 @@ class RepositoryTests(unittest.TestCase):
             self.assertEqual({e.attrib['id'] for e in root}, {'plugin.video.luma', 'repository.luma'})
             self.assertEqual((output / 'addons.xml.md5').read_text(), hashlib.md5(index).hexdigest())
             repo = root.find("./addon[@id='repository.luma']")
+            self.assertEqual(repo.attrib['version'], '0.1.1')
+            self.assertEqual(repo.find("./requires/import[@addon='xbmc.addon']").attrib['version'], '12.0.0')
+            # Kodi filters repository dirs by its internal xbmc.addon API version.
+            # A single shared catalog needs no version gate at all.
+            self.assertEqual(repo.find('./extension/dir').attrib, {})
             self.assertEqual(repo.findtext("./extension/dir/info"), 'https://example.test/luma/addons.xml')
             self.assertEqual(repo.findtext("./extension/dir/datadir"), 'https://example.test/luma/')
             for addon in root:
@@ -36,8 +41,8 @@ class RepositoryTests(unittest.TestCase):
                     self.assertFalse(any('__pycache__' in name or name.endswith('.pyc') for name in archive.namelist()))
                     if addon_id == 'repository.luma':
                         self.assertNotIn(b'{{BASE_URL}}', archive.read(addon_id + '/addon.xml'))
-            self.assertTrue((output / 'repository.luma-0.1.0.zip').is_file())
-            self.assertIn('repository.luma-0.1.0.zip', (output / 'index.html').read_text())
+            self.assertTrue((output / 'repository.luma-0.1.1.zip').is_file())
+            self.assertIn('repository.luma-0.1.1.zip', (output / 'index.html').read_text())
 
     def test_unsafe_base_urls_rejected(self):
         for url in ('http://example.com', 'https://user:password@example.com', 'https://example.com?token=x', 'https://example.com/#bad'):
