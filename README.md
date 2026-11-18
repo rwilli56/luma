@@ -2,7 +2,7 @@
 
 An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-friendly home screen. Targets **Kodi 21 Omega**, Google TV Streamer (4K), and a Samsung S90F display.
 
-**Status: 0.1.0 development alpha.** Includes an installable ZIP and automated tests. Live TorBox/Trakt/Emby accounts and a Kodi/Streamer device were not available in this workspace; installation, remote navigation, HDR output, audio and HDMI mode changes need the device checks in [the validation guide](docs/DEVICE-VALIDATION.md).
+**Status: 0.1.1 development alpha.** Includes an installable ZIP and automated tests. Live TorBox/Trakt/Emby accounts and a Streamer device were not available in this workspace; playback, remote navigation, HDR output, audio and HDMI mode changes need the device checks in [the validation guide](docs/DEVICE-VALIDATION.md). Repository browsing has been confirmed on Kodi 21.3 for Windows. Version 0.1.1 fixes the home-window filename collision with Estuary and corrects its font names.
 
 ## Install
 
@@ -17,7 +17,7 @@ An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-f
 
 For a direct local installation without the repository:
 
-1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.1.0.zip` from this workspace.
+1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.1.1.zip` from this workspace.
 2. Transfer the ZIP to a folder or network share Kodi can access. In Kodi, enable **Settings → System → Add-ons → Unknown sources**, then choose **Add-ons → Install from zip file**.
 3. Open **Video add-ons → Luma → Settings → Accounts and playback settings**. Enter your TorBox API key from your dashboard.
 4. Choose **Refresh**. Open **TorBox library** to browse and play your files. New transfers can take time to become ready; refresh after they finish.

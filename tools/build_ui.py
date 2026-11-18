@@ -56,7 +56,7 @@ def build():
     controls = child(window, 'controls')
     image(controls, 'background.png', 0, 0, 1920, 1080)
     image(controls, 'teal.png', 82, 54, 5, 32)
-    label(controls, 'L U M A', 105, 42, 390, 60, font='font30')
+    label(controls, 'L U M A', 105, 42, 390, 60, font='font30_title')
     label(controls, 'YOUR LIBRARY, IN A NEW LIGHT', 82, 150, 1000, 32, 'FF82BEB0', 'font12')
     control(controls, 'textbox', 80, 195, 1600, 112, label='$INFO[Window.Property(hero_title)]',
             font='font45', textcolor='FFF1EFE9')
@@ -71,7 +71,7 @@ def build():
     for cid, title, y, up, down in [(200, 'Continue watching', 350, 100, 300),
                                   (300, 'Next up', 580, 200, 400),
                                   (400, 'Recently watched series', 810, 300, 100)]:
-        label(controls, title, 84, y - 3, 1300, 40, font='font20')
+        label(controls, title, 84, y - 3, 1300, 40, font='font20_title')
         control(controls, 'button', 1595, y - 5, 200, 42, id=cid + 1, label='See all  >',
                 font='font12', textcolor='FF8FABA4', focusedcolor='FF12251F',
                 texturefocus='button-focus.png', texturenofocus='clear.png', align='center',
@@ -83,7 +83,7 @@ def build():
             card(layout, focused)
     label(controls, '$INFO[Window.Property(library_status)]', 84, 1042, 1100, 24, 'FF758983', 'font10')
     label(controls, '$INFO[Window.Property(trakt_status)]', 1190, 1042, 610, 24, 'FF758983', 'font10', align='right')
-    output = SKIN / '1080i' / 'Home.xml'
+    output = SKIN / '1080i' / 'Luma-Home.xml'
     output.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(window, space='  ')
     ET.ElementTree(window).write(output, encoding='utf-8', xml_declaration=True)

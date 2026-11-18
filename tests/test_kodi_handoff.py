@@ -6,9 +6,11 @@ import tempfile
 import time
 import types
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'plugin.video.luma'))
+ADDON_PATH = Path(__file__).resolve().parents[1] / 'plugin.video.luma'
+sys.path.insert(0, str(ADDON_PATH))
 
 
 class Tag:
@@ -63,10 +65,75 @@ class Player:
         return False
 
 
+class ControlList:
+    def __init__(self):
+        self.items, self.position = [], 0
+
+    def getSelectedPosition(self):
+        return self.position
+
+    def reset(self):
+        self.items.clear()
+
+    def addItems(self, items):
+        self.items.extend(items)
+
+    def addItem(self, item):
+        self.items.append(item)
+
+    def selectItem(self, position):
+        self.position = position
+
+
+class WindowXML:
+    last_instance = None
+    missing_control = None
+
+    def __init__(self, filename, script_path, skin, resolution):
+        WindowXML.last_instance = self
+        self.filename = filename
+        # Model Kodi's active-skin-first lookup. Estuary owns Home.xml.
+        if filename == 'Home.xml':
+            self.controls = {9000: ControlList()}
+        else:
+            root = ET.parse(Path(script_path) / 'resources/skins' / skin / resolution / filename)
+            self.controls = {int(node.attrib['id']): ControlList() for node in root.findall('.//control[@id]')}
+        if WindowXML.missing_control is not None:
+            self.controls.pop(WindowXML.missing_control, None)
+        self.properties = {}
+        self.close_calls = 0
+
+    def getControl(self, control_id):
+        if control_id not in self.controls:
+            raise RuntimeError('Non-Existent Control {}'.format(control_id))
+        return self.controls[control_id]
+
+    def setProperty(self, key, value):
+        self.properties[key] = value
+
+    def close(self):
+        self.close_calls += 1
+
+    def show(self):
+        self.onInit()
+        if self.initialized:
+            self.onClick(103)
+
+
+class Monitor:
+    def abortRequested(self):
+        return False
+
+    def waitForAbort(self, seconds):
+        raise AssertionError('Home should already have closed in this fixture')
+
+
 xbmc = types.ModuleType('xbmc')
 xbmc.Player, xbmc.executebuiltin, xbmc.log, xbmc.LOGERROR = Player, Mock(), Mock(), 3
+xbmc.Monitor = Monitor
 gui = types.ModuleType('xbmcgui')
 gui.ListItem, gui.Dialog = ListItem, Mock()
+gui.WindowXML = WindowXML
 plugin = types.ModuleType('xbmcplugin')
 plugin.setResolvedUrl = Mock()
 addon = types.ModuleType('xbmcaddon')
@@ -77,6 +144,7 @@ from resources.lib import app
 from resources.lib.monitor import PlaybackTracker
 from resources.lib.media import parse_name, traits
 from resources.lib.store import Store
+from resources.lib import ui
 
 
 class KodiHandoffTests(unittest.TestCase):
@@ -136,6 +204,39 @@ class KodiHandoffTests(unittest.TestCase):
         player.onPlayBackEnded()
         self.assertTrue(self.db.history()[0]['completed'])
         self.assertEqual(self.db.history()[0]['position'], 1000)
+
+
+class HomeLaunchTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.db = Store(str(Path(self.temp.name) / 'ui.db'))
+        self.addon = Mock()
+        self.addon.getAddonInfo.return_value = str(ADDON_PATH)
+        WindowXML.missing_control = None
+
+    def tearDown(self):
+        WindowXML.missing_control = None
+        self.temp.cleanup()
+
+    def test_home_uses_addon_layout_despite_estuary_home_filename(self):
+        with patch.object(ui.config, 'store', return_value=self.db), patch.object(ui.config, 'addon', return_value=self.addon):
+            selection = ui.show_home()
+        window = WindowXML.last_instance
+        self.assertEqual(window.filename, 'Luma-Home.xml')
+        self.assertTrue(window.initialized)
+        self.assertEqual(selection, ('settings', None))
+        for control_id in (200, 300, 400):
+            self.assertEqual(len(window.controls[control_id].items), 1)
+
+    def test_missing_layout_control_closes_and_surfaces_failure(self):
+        WindowXML.missing_control = 200
+        with patch.object(ui.config, 'store', return_value=self.db), patch.object(ui.config, 'addon', return_value=self.addon):
+            with self.assertRaisesRegex(RuntimeError, 'home layout'):
+                ui.show_home()
+        window = WindowXML.last_instance
+        self.assertFalse(window.initialized)
+        self.assertTrue(window.closed)
+        self.assertGreaterEqual(window.close_calls, 1)
 
 
 if __name__ == '__main__':

@@ -28,7 +28,7 @@
       <height>60</height>
       <label>L U M A</label>
       <textcolor>FFF1EFE9</textcolor>
-      <font>font30</font>
+      <font>font30_title</font>
     </control>
     <control type="label">
       <left>82</left>
@@ -136,7 +136,7 @@
       <height>40</height>
       <label>Continue watching</label>
       <textcolor>FFF1EFE9</textcolor>
-      <font>font20</font>
+      <font>font20_title</font>
     </control>
     <control type="button" id="201">
       <left>1595</left>
@@ -325,7 +325,7 @@
       <height>40</height>
       <label>Next up</label>
       <textcolor>FFF1EFE9</textcolor>
-      <font>font20</font>
+      <font>font20_title</font>
     </control>
     <control type="button" id="301">
       <left>1595</left>
@@ -514,7 +514,7 @@
       <height>40</height>
       <label>Recently watched series</label>
       <textcolor>FFF1EFE9</textcolor>
-      <font>font20</font>
+      <font>font20_title</font>
     </control>
     <control type="button" id="401">
       <left>1595</left>

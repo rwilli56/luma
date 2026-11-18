@@ -1,4 +1,4 @@
-"""Offline layout preview from Home.xml with fictional fixture titles.
+"""Offline layout preview from Luma-Home.xml with fictional fixture titles.
 
 This is not a Kodi screenshot. Kodi runtime rendering remains a device test.
 """
@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SKIN = ROOT / 'plugin.video.luma/resources/skins/Default'
-FONTS = {'font10': 17, 'font12': 20, 'font13': 24, 'font20': 29, 'font30': 35, 'font45': 49}
+FONTS = {'font10': 17, 'font12': 20, 'font13': 24, 'font20_title': 29, 'font30_title': 35, 'font45': 49}
 WINDOW = {'hero_title': 'The Quiet Coast', 'hero_detail': 'Pick up where you left off.',
           'library_status': 'TorBox library ready', 'trakt_status': 'Connected · synced'}
 ROWS = {
@@ -87,7 +87,7 @@ def draw_control(canvas, node, offset=(0, 0), item=None):
 
 def main():
     canvas = Image.new('RGBA', (1920, 1080))
-    for node in ET.parse(SKIN / '1080i/Home.xml').findall('./controls/control'):
+    for node in ET.parse(SKIN / '1080i/Luma-Home.xml').findall('./controls/control'):
         draw_control(canvas, node)
     output = ROOT / 'docs' / 'home-layout-preview.png'
     output.parent.mkdir(exist_ok=True)

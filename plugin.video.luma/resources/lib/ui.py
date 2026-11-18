@@ -32,10 +32,17 @@ class Home(xbmcgui.WindowXML):
         self.initialized = False
         self.rows = {}
         self.revision = None
+        self.initialization_error = None
 
     def onInit(self):
-        self.initialized = True
-        self.populate()
+        try:
+            self.populate()
+            self.initialized = True
+        except Exception as exc:
+            self.initialization_error = type(exc).__name__
+            self.closed = True
+            self.close()
+            xbmc.log('Luma: home initialization failed ({})'.format(self.initialization_error), xbmc.LOGERROR)
 
     def populate(self):
         rows = home_rows(self.db)
@@ -84,15 +91,19 @@ class Home(xbmcgui.WindowXML):
 
 
 def show_home():
-    home = Home('Home.xml', config.addon().getAddonInfo('path'), 'Default', '1080i')
+    # Kodi searches the active skin before the add-on fallback. Never use a
+    # standard skin filename such as Home.xml here.
+    home = Home('Luma-Home.xml', config.addon().getAddonInfo('path'), 'Default', '1080i')
     monitor = xbmc.Monitor()
-    home.show()
-    # Keep UI updates on this Python thread; the service never touches window controls.
-    while not home.closed and not monitor.abortRequested():
-        if home.initialized and home.db.get('ui_revision') != home.revision:
-            home.populate()
-        monitor.waitForAbort(.5)
-    selection = home.selection
-    home.close()
-    del home
-    return selection
+    try:
+        home.show()
+        # Keep UI updates on this Python thread; the service never touches window controls.
+        while not home.closed and not monitor.abortRequested():
+            if home.initialized and home.db.get('ui_revision') != home.revision:
+                home.populate()
+            monitor.waitForAbort(.5)
+        if home.initialization_error:
+            raise RuntimeError('Luma home layout could not be initialized.')
+        return home.selection
+    finally:
+        home.close()

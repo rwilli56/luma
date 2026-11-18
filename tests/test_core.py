@@ -320,11 +320,21 @@ class PackageTests(unittest.TestCase):
         ET.parse(addon / 'resources/settings.xml')
 
     def test_home_navigation_targets_exist(self):
-        root = ET.parse(ROOT / 'plugin.video.luma/resources/skins/Default/1080i/Home.xml')
+        root = ET.parse(ROOT / 'plugin.video.luma/resources/skins/Default/1080i/Luma-Home.xml')
         ids = {e.attrib['id'] for e in root.findall('.//control[@id]')}
         for tag in ('onup', 'ondown', 'onleft', 'onright'):
             for e in root.findall('.//' + tag):
                 self.assertIn(e.text, ids)
+
+    def test_home_fonts_exist_in_estuary(self):
+        # Font names from Kodi 21's shipped Estuary Font.xml.
+        supported = {'font10', 'font12', 'font13', 'font14', 'font23_narrow', 'font25_narrow',
+                     'font27', 'font27_narrow', 'font32', 'font37', 'font45', 'font60', 'font_clock',
+                     'font_flag', 'font20_title', 'font25_title', 'font30_title', 'font32_title',
+                     'font36_title', 'font40_title', 'font45_title', 'font52_title', 'font_MainMenu'}
+        root = ET.parse(ROOT / 'plugin.video.luma/resources/skins/Default/1080i/Luma-Home.xml')
+        for font in root.findall('.//font'):
+            self.assertIn(font.text, supported)
 
 
 if __name__ == '__main__':
