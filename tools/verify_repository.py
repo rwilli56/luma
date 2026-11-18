@@ -9,17 +9,35 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import zipfile
 from html.parser import HTMLParser
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 
 
 class DirectoryLinks(HTMLParser):
     def __init__(self):
         super().__init__()
         self.links = []
+        self.href = None
+        self.label = []
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'a' and dict(attrs).get('href'):
-            self.links.append(dict(attrs)['href'])
+        if tag == 'a':
+            self.href = dict(attrs).get('href')
+            self.label = []
+
+    def handle_data(self, data):
+        if self.href is not None:
+            self.label.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.href is not None:
+            # Kodi HTTPDirectory.cpp accepts a link as a file only when its
+            # display name matches its URL-decoded relative path (sans slash).
+            target = unquote(self.href.split('?', 1)[0].split('#', 1)[0].lstrip('/').rstrip('/'))
+            label = ''.join(self.label).strip().rstrip('/')
+            if target and target != '..' and (label == target or (':' in label and './' + label == target)):
+                self.links.append(self.href)
+            self.href = None
+            self.label = []
 
 
 def verify_listing(base_url, html, entries):

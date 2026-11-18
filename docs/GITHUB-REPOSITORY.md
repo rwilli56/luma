@@ -59,7 +59,7 @@ The source `repository.luma/addon.xml.in` is a template. Only the builder's ZIP 
 
 Repository 0.1.1 adds an explicit `xbmc.addon` dependency and removes the directory's internal API-version gate. Install this ZIP manually over repository 0.1.0, since a repository that cannot refresh cannot discover its own update. Then long-press **Luma Repository → Check for updates** and reopen it.
 
-The original download page omitted the `addons.xml.md5` link. Kodi's HTTP directory cache can then treat this real file as nonexistent after you browse the source to install the ZIP. The site now lists both the catalog and checksum. **Fully exit and restart Kodi, then open Luma Repository directly** to clear the old in-memory directory listing; another repository ZIP reinstall is not needed for this site fix.
+The original download page omitted the `addons.xml.md5` link. Kodi's HTTP directory cache can then treat this real file as nonexistent after you browse the source to install the ZIP. Kodi also requires a directory link's visible label to match its filename. The site now lists both the catalog and checksum using their actual filenames. **Fully exit and restart Kodi, then open Luma Repository directly** to clear the old in-memory directory listing; another repository ZIP reinstall is not needed for this site fix.
 
 The live verifier now checks the HTML listing as well as direct downloads and hashes. This reflects Kodi's [file-open check](https://github.com/xbmc/xbmc/blob/Omega/xbmc/filesystem/File.cpp) and [directory-cache lookup](https://github.com/xbmc/xbmc/blob/Omega/xbmc/filesystem/DirectoryCache.cpp). If the error continues after restart, check recent log entries for `repository.luma`, `CRepository`, `CCurlFile`, or `AddonsFromRepoXML`.
 

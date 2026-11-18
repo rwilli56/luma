@@ -83,7 +83,16 @@ class RepositoryTests(unittest.TestCase):
             <checksum>https://example.test/luma/addons.xml.md5</checksum>
             </dir></extension></addon></addons>''')
         with self.assertRaisesRegex(ValueError, 'unlisted.*addons.xml.md5'):
-            verify_listing('https://example.test/luma', '<a href="addons.xml">Index</a>', entries)
+            verify_listing('https://example.test/luma', '<a href="addons.xml">addons.xml</a>', entries)
+
+    def test_friendly_link_labels_are_not_kodi_directory_entries(self):
+        entries = ET.fromstring('''<addons><addon><extension point="xbmc.addon.repository"><dir>
+            <info>https://example.test/luma/addons.xml</info>
+            <checksum>https://example.test/luma/addons.xml.md5</checksum>
+            </dir></extension></addon></addons>''')
+        page = '<a href="addons.xml">addons.xml</a> · <a href="addons.xml.md5">Index checksum</a>'
+        with self.assertRaisesRegex(ValueError, 'unlisted.*addons.xml.md5'):
+            verify_listing('https://example.test/luma', page, entries)
 
     def test_unsafe_base_urls_rejected(self):
         for url in ('http://example.com', 'https://user:password@example.com', 'https://example.com?token=x', 'https://example.com/#bad'):

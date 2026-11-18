@@ -80,8 +80,7 @@ def build(base_url, output=None):
 <p><a href="{repo_zip}">{repo_zip}</a></p>
 <p>Add <code>{url}/</code> in Kodi's File manager. Install the repository ZIP, then choose <strong>Install from repository → Luma Repository → Video add-ons → Luma</strong>.</p>
 <p class="note">Development alpha · Kodi 21 Omega · TorBox · Optional Trakt and Emby</p>
-<p><a href="{plugin}/{plugin}-{version}.zip">Direct add-on ZIP</a> · <a href="addons.xml">Repository index</a> · <a href="addons.xml.md5">Index checksum</a></p>
-<p><a href="{plugin}/">Add-on packages</a> · <a href="repository.luma/">Repository packages</a></p>
+<p><a href="{plugin}/{plugin}-{version}.zip">{plugin}/{plugin}-{version}.zip</a> · <a href="addons.xml">addons.xml</a> · <a href="addons.xml.md5">addons.xml.md5</a></p>
 </body></html>'''.format(title=title, repo_zip=html.escape(repo_zip.name), url=html.escape(base_url), plugin=addon_id, version=addon_version), encoding='utf-8')
     print('Kodi source URL: ' + base_url + '/')
     print('Repository output: ' + str(output))
