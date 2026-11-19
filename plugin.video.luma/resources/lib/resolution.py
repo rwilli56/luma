@@ -43,7 +43,7 @@ def probe_link(url, opener=None):
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or '|' in url:
         raise LinkUnavailable()
-    request = Request(url, headers={'Range': 'bytes=0-0', 'Accept-Encoding': 'identity', 'User-Agent': 'Luma-Kodi/0.5.0'}, method='GET')
+    request = Request(url, headers={'Range': 'bytes=0-0', 'Accept-Encoding': 'identity', 'User-Agent': 'Luma-Kodi/0.6.0'}, method='GET')
     try:
         opener = opener or build_opener(SecureRedirects()).open
         with opener(request, timeout=5) as response:
@@ -109,6 +109,14 @@ def candidates(transfer, media, manual=False):
             and test(i['sources'][0]['path'], media, transfer.get('name', ''))]
 
 
+def format_conflict(release, file):
+    """Only explicit file hints can contradict a release's unverified hints."""
+    before, after = release['traits'], file['traits']
+    unknown = (None, '', 0, 'Audio unknown', 'SDR / unknown')
+    return any(after.get('origins', {}).get('resolution' if key == 'scan' else key) == 'filename' and before.get(key) not in unknown and after.get(key) not in unknown
+               and after.get(key) != before.get(key) for key in ('resolution', 'scan', 'hdr', 'audio', 'codec', 'bit_depth', 'release_type'))
+
+
 def resolve_selected(api, source, media, check_link=True, probe=None):
     """Refresh stale file records, then generate and optionally check one CDN URL."""
     try:
@@ -131,6 +139,12 @@ def resolve_selected(api, source, media, check_link=True, probe=None):
                              and i['sources'][0]['path'] == source.get('path')), None)
         if not selected or not selected['sources'][0]['ready']:
             raise SourceUnavailable('The selected file is missing, incomplete or no longer matches this episode.')
+        # Update in place so filters and subsequent displays use the fresh file.
+        fresh = selected['sources'][0]
+        if not fresh.get('hash') and expected_hash:
+            fresh['hash'] = expected_hash
+        source.update(fresh)
+        source['verified_at'] = time.time()
     url = api.resolve(source)
     if check_link:
         probe = probe or probe_link

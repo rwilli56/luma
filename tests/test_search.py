@@ -254,6 +254,7 @@ class SearchPlaybackTests(unittest.TestCase):
         self.client.torrent.return_value = {'id': 8, 'download_finished': True, 'download_present': True,
                                           'files': [{'id': 4, 'name': result()['name'] + '.mkv', 'size': 12e9}]}
         self.queries = []
+        self.choices = []
         queries = self.queries
 
         class Source:
@@ -275,8 +276,37 @@ class SearchPlaybackTests(unittest.TestCase):
              patch.object(search.xbmc, 'Monitor', return_value=self.monitor), \
              patch.object(search.providers, 'installed', return_value=[dict(key='coco', available=True)]), \
              patch.object(search.providers, 'load', return_value=([('one', self.source), ('duplicate', self.source)], [])), \
+             patch.object(search, 'choose_source', side_effect=self.choose), \
              patch.object(search, 'TorBox', return_value=self.client):
             return search.find_sources(movie())
+
+    def choose(self, sources, media, stage='torrents'):
+        self.choices.append((stage, sources[:]))
+        return self.dialog.select()
+
+    def test_cache_size_strings_are_totals_and_invalid_sizes_keep_the_provider_estimate(self):
+        for total, expected, origin in [('12000000000', 12e9, 'TorBox cache total'), ('nan', 12.5 * 1024 ** 3, 'Provider estimate')]:
+            self.client.cached.return_value = {HASH: {'size': total}}
+            self.discover()
+            source = self.choices[-1][1][0]
+            self.assertEqual((source['size'], source['size_scope'], source['size_origin']), (expected, 'torrent', origin))
+
+    def test_explicit_file_disagreement_shows_real_formats_and_file_size(self):
+        self.client.torrent.return_value['files'][0].update(name='Example.Film.2024.1080p.SDR.AAC.mkv', size=2e9)
+        selected = self.discover()
+        self.assertEqual([stage for stage, _ in self.choices], ['torrents', 'files'])
+        actual = self.choices[-1][1][0]
+        self.assertEqual((actual['size'], actual['traits']['resolution'], actual['traits']['hdr']), (2e9, 1080, 'SDR'))
+        self.assertEqual(selected['sources'][0]['file_id'], 4)
+
+    def test_multiple_actual_files_are_sorted_and_return_the_selected_file_id(self):
+        self.client.torrent.return_value['files'] = [
+            {'id': 8, 'name': 'Example.Film.2024.1080p.SDR.AAC.mkv', 'size': 2e9},
+            {'id': 9, 'name': result()['name'] + '.mkv', 'size': 12e9}]
+        self.dialog.select.side_effect = [0, 1]
+        selected = self.discover()
+        self.assertEqual([s['file_id'] for s in self.choices[-1][1]], [9, 8])
+        self.assertEqual(selected['sources'][0]['file_id'], 8)
 
     def test_duplicate_search_to_native_player_without_stored_cdn_urls(self):
         selected = self.discover()

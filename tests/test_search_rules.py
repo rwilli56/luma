@@ -166,6 +166,7 @@ class SearchIntegrationTests(unittest.TestCase):
              patch.object(mod.providers, 'installed', return_value=[{'key': 'coco', 'available': True}]), \
              patch.object(mod.providers, 'load', return_value=([('test', self.source)], [])), \
              patch.object(mod, 'TorBox', return_value=self.api), patch.object(mod.xbmcgui, 'Dialog', return_value=self.dialog), \
+             patch.object(mod, 'choose_source', side_effect=lambda *args, **kwargs: self.dialog.select()), \
              patch.object(mod.xbmcgui, 'DialogProgress', return_value=self.progress, create=True), patch.object(mod.xbmc, 'Monitor', return_value=self.monitor):
             return mod.find_sources(media or episode(), prefer_library=prefer_library)
 

@@ -46,7 +46,7 @@ class Http:
         url = self.base + '/' + path.lstrip('/')
         if params:
             url += '?' + urlencode(params, doseq=True)
-        request_headers = {'Accept': 'application/json', 'User-Agent': 'Luma-Kodi/0.5.0'}
+        request_headers = {'Accept': 'application/json', 'User-Agent': 'Luma-Kodi/0.6.0'}
         request_headers.update(self.headers)
         request_headers.update(headers or {})
         data = None

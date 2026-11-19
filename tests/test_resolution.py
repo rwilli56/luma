@@ -94,7 +94,7 @@ class EpisodeMatchingTests(unittest.TestCase):
         self.assertEqual(items[0]['sources'][0]['path'], 'Season 2/E03.mkv')
         self.assertEqual(items[0]['sources'][0]['traits']['resolution'], 2160)
         hint = items[1]['sources'][0]['traits']
-        self.assertEqual((hint['resolution'], hint['hdr'], hint['audio']), (1080, 'SDR / unknown', 'AAC'))
+        self.assertEqual((hint['resolution'], hint['hdr'], hint['audio']), (1080, 'SDR', 'AAC'))
 
     def test_disc_segments_are_excluded_without_excluding_standalone_m2ts(self):
         pack = transfer('BDMV/STREAM/00003.m2ts', 'Example.S02E03.m2ts')

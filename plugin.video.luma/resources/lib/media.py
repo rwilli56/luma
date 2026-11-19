@@ -44,35 +44,74 @@ def parse_name(filename, parent=''):
 
 
 def traits(name):
-    text = name.lower()
-    hdr10 = 'hdr10' in text or 'hdr' in text
-    plus = any(value in text for value in ('hdr10+', 'hdr10plus', 'hdr10.plus'))
-    dv = bool(re.search(r'\b(?:dv|dovi)\b|dolby[ ._-]?vision', text))
-    hdr = 'HDR10+' if plus else ('HDR10' if hdr10 else ('DV' if dv else 'SDR / unknown'))
-    audio = next((label for pattern, label in ((r'true[ ._-]?hd', 'TrueHD'), (r'dts', 'DTS'),
-                 (r'e[ ._-]?ac[ ._-]?3|ddp|dd\+', 'E-AC-3'), (r'ac[ ._-]?3|dd5', 'AC-3'),
-                 (r'aac', 'AAC'), (r'flac', 'FLAC')) if re.search(pattern, text)), 'Audio unknown')
-    return {'resolution': 2160 if re.search(r'2160|\b4k\b|\buhd\b', text) else (1080 if '1080' in text else (720 if '720' in text else 0)),
-            'hdr': hdr, 'dv_only': dv and not hdr10, 'audio': audio,
-            'codec': 'AV1' if 'av1' in text else ('HEVC' if re.search(r'hevc|[xh][ ._-]?265', text) else ('H.264' if re.search(r'[xh][ ._-]?264', text) else ''))}
+    """Conservative release-name hints, never a claim about probed stream tracks."""
+    text = name.casefold()
+    def token(pattern):
+        return bool(re.search(r'(?<![a-z0-9])(?:' + pattern + r')(?![a-z0-9])', text))
+    plus = token(r'hdr10(?:\+|[ ._-]?plus)')
+    hdr10 = plus or token(r'hdr10')
+    dv = token(r'dv|dovi|dolby[ ._-]?vision')
+    hdr = 'HDR10+' if plus else 'HDR10' if hdr10 else 'HLG' if token('hlg') else 'HDR (unspecified)' if token('hdr') else 'DV' if dv else 'SDR' if token('sdr') else 'SDR / unknown'
+    formats = ([hdr] if hdr not in ('SDR / unknown', 'DV') else []) + (['DV'] if dv else [])
+    audio = []
+    patterns = ((r'true[ ._-]?hd', 'TrueHD'),
+                (r'dts[ ._-]?(?:hd[ ._-]?)?ma', 'DTS-HD MA'), (r'dts[ ._-]?hd[ ._-]?hra', 'DTS-HD HRA'),
+                (r'dts[ ._:-]?x', 'DTS:X'), (r'dts[ ._-]?hd', 'DTS-HD'), (r'dts', 'DTS'),
+                (r'e[ ._-]?ac[ ._-]?3|ddp(?:[ ._-]?[1-8][ .][01])?|dd\+(?:[ ._-]?[1-8][ .][01])?', 'E-AC-3'),
+                (r'ac[ ._-]?3|dd(?!\+)(?:[ ._-]?[1-8][ .][01])?', 'AC-3'), (r'aac(?:[1-8][ .][01])?', 'AAC'),
+                (r'flac', 'FLAC'), (r'l?pcm', 'PCM'), (r'opus', 'Opus'), (r'mp3', 'MP3'))
+    for pattern, label in patterns:
+        if token(pattern) and not (label in ('DTS-HD', 'DTS') and any(a.startswith('DTS') for a in audio)):
+            audio.append(label)
+    channels = list(dict.fromkeys('.'.join(v for v in m.groups() if v) for m in re.finditer(r'(?<!\d)([12567])[ .]([01])(?:[ .]([24]))?(?!\d)', text)))
+    resolution = next((value for pattern, value in ((r'4320p?|8k', 4320), (r'2160p?|4k|uhd', 2160),
+                      (r'1080[pi]?', 1080), (r'720p?', 720), (r'576[pi]?', 576), (r'480[pi]?', 480)) if token(pattern)), 0)
+    scan = re.search(r'(?<![a-z0-9])(?:4320|2160|1080|720|576|480)([pi])(?![a-z0-9])', text)
+    return {'resolution': resolution, 'scan': scan.group(1) if scan else '', 'hdr': hdr, 'hdr_formats': formats, 'dv_only': dv and not hdr10,
+            'audio': audio[0] if audio else 'Audio unknown', 'audio_formats': audio,
+            'atmos': token(r'atmos'), 'channels': channels[0] if channels else '', 'channel_layouts': channels,
+            'codec': 'AV1' if token('av1') else 'HEVC' if token(r'hevc|[xh][ ._-]?265') else 'H.264' if token(r'avc|[xh][ ._-]?264') else '',
+            'bit_depth': '12-bit' if token(r'12[ ._-]?bit') else '10-bit' if token(r'10[ ._-]?bit') else '8-bit' if token(r'8[ ._-]?bit') else '',
+            'release_type': next((label for pattern, label in ((r'remux', 'REMUX'), (r'web[ ._-]?dl', 'WEB-DL'),
+                (r'web[ ._-]?rip', 'WEBRip'), (r'blu[ ._-]?ray|b[dr]rip', 'Blu-ray'), (r'hdtv', 'HDTV')) if token(pattern)), '')}
 
 
 def source_rank(source, allow_dv=False, lossless=False):
     hint = source['traits']
     # Compatibility first, then resolution and HDR. Never infer a DV base layer.
     compatible = not hint['dv_only'] or allow_dv
-    audio = lossless or hint['audio'] not in ('TrueHD', 'DTS')
+    audio = lossless or not (hint['audio'] == 'TrueHD' or hint['audio'].startswith('DTS'))
     return (compatible, audio, hint['resolution'], {'HDR10+': 3, 'HDR10': 2, 'DV': 1}.get(hint['hdr'], 0))
 
 
 def file_traits(name, parent=''):
-    hint, fallback = traits(name), traits(parent)
-    for key, empty in (('resolution', 0), ('audio', 'Audio unknown'), ('codec', '')):
-        if hint[key] == empty:
-            hint[key] = fallback[key]
-    if hint['hdr'] == 'SDR / unknown' and not re.search(r'(?i)(?<![a-z])sdr(?![a-z])', name):
-        hint['hdr'], hint['dv_only'] = fallback['hdr'], fallback['dv_only']
+    from .episodes import path_parts
+    parts = path_parts(name)
+    hint = traits(parts[-1] if parts else '')
+    groups = (('resolution', 'scan'), ('audio', 'audio_formats', 'atmos', 'channels', 'channel_layouts'), ('codec',),
+              ('hdr', 'hdr_formats', 'dv_only'), ('bit_depth',), ('release_type',))
+    def missing(data, group):
+        return data[group[0]] in (0, '', 'Audio unknown', 'SDR / unknown') and not (group[0] == 'audio' and (data['atmos'] or data['channel_layouts']))
+    origins = {g[0]: 'filename' for g in groups if not missing(hint, g)}
+    for text, origin in [(p, 'folder') for p in reversed(parts[:-1])] + [(parent, 'release')]:
+        fallback = traits(text)
+        for group in groups:
+            if missing(hint, group) and not missing(fallback, group):
+                hint.update({key: fallback[key] for key in group})
+                origins[group[0]] = origin
+    hint['origins'] = origins
     return hint
+
+
+def byte_size(value, multiplier=1):
+    """Unknown/malformed sizes stay unknown rather than becoming NaN/Infinity."""
+    if isinstance(value, bool):
+        return 0
+    try:
+        size = float(value) * multiplier
+        return size if math.isfinite(size) and 0 < size <= 2 ** 63 - 1 else 0
+    except (ValueError, TypeError, OverflowError):
+        return 0
 
 
 def flatten(transfers, kind):
@@ -86,25 +125,23 @@ def flatten(transfers, kind):
             if not isinstance(file, dict) or file.get('id') is None:
                 continue
             path = file.get('name') or file.get('short_name') or ''
-            name = file.get('short_name') or episodes.path_parts(path)[-1]
             parent = transfer.get('name') or ''
             if not isinstance(parent, str):
                 parent = ''
-            if not isinstance(path, str) or not isinstance(name, str):
+            if not isinstance(path, str) or not episodes.path_parts(path):
                 continue
+            # Full path is authoritative; a conflicting short_name is only a label.
+            name = episodes.path_parts(path)[-1]
             if os.path.splitext(name)[1].lower() not in VIDEO_EXTENSIONS or episodes.is_disc_segment(path) or episodes.is_extra(path, episodes.parent_title('', parent)):
                 continue
             media = parse_name(path, parent)
             if media['ambiguous']:
                 continue
-            try:
-                size = float(file.get('size') or 0)
-                size = size if math.isfinite(size) and size >= 0 else 0
-            except (ValueError, TypeError):
-                size = 0
+            size = byte_size(file.get('size'))
             source = {'kind': kind, 'transfer_id': transfer['id'], 'file_id': file['id'],
                       'name': name, 'size': size, 'ready': ready,
-                      'traits': file_traits(name, parent), 'state': transfer.get('download_state', 'unknown'),
+                      'traits': file_traits(path, parent), 'state': transfer.get('download_state', 'unknown'),
+                      'size_scope': 'file', 'size_origin': 'TorBox file', 'torrent_size': byte_size(transfer.get('size')),
                       'path': path, 'transfer_name': parent, 'hash': transfer.get('hash', '')}
             media['sources'] = [source]
             result.append(media)

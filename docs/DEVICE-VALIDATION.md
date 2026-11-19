@@ -61,6 +61,15 @@ These are pending device/account checks; automated fixtures do not establish liv
 - Reset one scope and save; inherited rules must remain. Clear ordinary caches and restart; saved overrides must remain. A confirmed file mapping must still resolve after library refresh and filter reset, with progress preserved. Test full wipe only in a disposable profile.
 - Save and start a source search from a dashboard card. After selecting a source, verify the dashboard stays closed as playback starts. Edit filters during playback and confirm no provider search action is offered.
 
+## Source picker and file reporting (0.6.0)
+
+- Open source selection under Estuary on Kodi 21.3, then on the Google TV Streamer. Confirm seven readable rows, focused release/provider details, the correct result index, full filename scrolling, page navigation and right/left navigation to Source information and Cancel. Long-press and Info must open details and preserve the focused row when dismissed. Back and Android back must cancel without adding a transfer or playing a file.
+- Check the native layout at 1080p and 4K GUI output. Verify no missing controls/fonts, clipped critical size text or focus traps. If a skin cannot load the custom layout, verify the compact fallback remains usable. The offline preview is not proof of runtime rendering.
+- Compare a real season pack's TorBox total with the chosen episode's file bytes. The initial picker must label a torrent total, and file mode must label the episode's size. Compare provider estimates separately; unknown/invalid sizes must show unknown. Inspect Source information for the full path, byte count, provider names and hint origins.
+- Use a deliberately mislabeled release whose selected file is 1080p SDR/AAC rather than 4K HDR/TrueHD. Selection playstyle must show the actual conflicting file before playback; automatic playstyle must still enforce the actual file's restrictions. Refresh an existing transfer with changed file details and verify old metadata cannot bypass filters.
+- Check generic HDR, HDR10, HDR10+, DV-only, DV/HDR10 hybrids, HLG, SDR, interlaced video, DTS-HD MA/HRA, DTS:X, TrueHD/Atmos, DD+/DDP and AAC fixtures against the filename and then Kodi's real stream information. An untagged field must stay unknown. Multiple audio/channel hints must not be mistaken for a verified track list.
+- Search a Bake Off numbering override and verify canonical/source coordinates appear correctly, the exact source file ID is played and Trakt still records the canonical episode. Repeat the 4K seek/frame-rate matrix to confirm no playback regression; the picker must cause no bulk stream probes or background artwork requests.
+
 ## Frame-rate and HDR matrix
 
 Set Luma's automatic frame-rate matching on. Before each test, choose a different GUI refresh rate so a successful switch is observable. Verify Kodi's settings show **On start/stop** and **Sync playback to display: Off**. Then verify the actual output with Kodi's player diagnostics and the TV's signal information where available. A multiple of the content frame rate may be selected if the exact rate is not exposed.

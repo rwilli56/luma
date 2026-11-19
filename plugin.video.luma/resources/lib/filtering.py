@@ -1,7 +1,7 @@
 """Consistent filename-based source preferences for search and library playback."""
 import re
 from . import preferences as prefs
-from .media import EPISODE, source_rank
+from .media import EPISODE, source_rank, byte_size
 
 
 def options():
@@ -27,12 +27,12 @@ def apply(sources, media_type, settings=None, torrent_results=False):
             continue
         size_limit = settings['movie_size' if media_type == 'movie' else 'episode_size']
         pack = torrent_results and media_type == 'episode' and (source.get('package') or not EPISODE.search(name.replace('_', ' ')))
-        if size_limit and not pack and source.get('size', 0) > size_limit * 1e9:
+        if size_limit and not pack and byte_size(source.get('size')) > size_limit * 1e9:
             continue
         result.append(source)
     def rank(source):
         base = source_rank(source, settings['allow_dv'], settings['prefer_lossless'])
-        size = source.get('size', 0)
+        size = byte_size(source.get('size'))
         if settings['source_sort'] == 'small':
             return base[:2] + (-size,) + base[2:]
         if settings['source_sort'] == 'large':

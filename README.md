@@ -2,7 +2,7 @@
 
 An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-friendly home screen. Targets **Kodi 21 Omega**, Google TV Streamer (4K), and a Samsung S90F display.
 
-**Status: 0.5.0 development alpha.** Adds long-press custom search filters, including alternate season/episode numbering with canonical watch history preserved. See [custom searches and the Bake Off example](docs/CUSTOM-SEARCH-FILTERS.md), [source/pack/sign-in behaviour](docs/SOURCE-VALIDATION-AND-PACKS.md) and [menu coverage](docs/SEREN-MENUS-AND-SETTINGS.md). The default main menu and optional visual **Home Dashboard** remain available. Live account/provider tests and Google TV playback still need the checks in [the validation guide](docs/DEVICE-VALIDATION.md).
+**Status: 0.6.0 development alpha.** Adds a full-screen source picker with numbered results, a details panel and long-press source information, plus more accurate file-size and format reporting. See [the source picker review and guide](docs/SOURCE-PICKER.md), [custom searches and the Bake Off example](docs/CUSTOM-SEARCH-FILTERS.md), [source/pack/sign-in behaviour](docs/SOURCE-VALIDATION-AND-PACKS.md) and [menu coverage](docs/SEREN-MENUS-AND-SETTINGS.md). Live account/provider tests and Google TV playback still need the checks in [the validation guide](docs/DEVICE-VALIDATION.md).
 
 ## Install
 
@@ -17,7 +17,7 @@ An original, lightweight Kodi video add-on built around TorBox and a quiet, TV-f
 
 For a direct local installation without the repository:
 
-1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.5.0.zip` from this workspace.
+1. Build with `python tools/package.py`, or use `dist/plugin.video.luma-0.6.0.zip` from this workspace.
 2. Transfer the ZIP to a folder or network share Kodi can access. In Kodi, enable **Settings → System → Add-ons → Unknown sources**, then choose **Add-ons → Install from zip file**.
 3. Open **Luma → Tools → Open Settings Menu → Accounts**. Enter your TorBox API key from your dashboard.
 4. Open **My Files → TorBox** to browse and play your files after the idle service refreshes them. The visual **Home Dashboard** also has a Refresh button. New transfers can take time to become ready.
@@ -30,6 +30,7 @@ Kodi installs Requests from its official add-on repository for provider compatib
 - TorBox torrent and web-download libraries, with pagination, video-file filtering, season-pack files and multiple quality versions.
 - User-added magnet and HTTP(S) file links, submitted to TorBox for downloading.
 - Movie and TV title search, season/episode selection, installed CocoScrapers and Magneto/POV provider adapters, duplicate-hash removal, and a TorBox-cached source chooser.
+- Full-screen source/file selection with numbered releases, a focused details panel and long-press information. Torrent totals, provider estimates and actual file sizes are labeled separately; format hints retain HDR/DV combinations, DTS variants, Atmos and channel layouts.
 - Fresh TorBox playback links requested at play time; direct original-file playback through Kodi VideoPlayer.
 - Selected-hash cache rechecks, actual-file validation, optional one-byte CDN link checks and bounded source failover. Bulk checks never open video streams.
 - Season/episode and air-date matching, season-folder filenames, complete-pack season ranges and explicit confirmation for suitable unrecognized filenames. Per-file bindings survive library refreshes.
@@ -45,11 +46,11 @@ This version has no automatic next-episode playback, external subtitle fetching,
 
 ## Search providers
 
-1. Update the **Luma video add-on** to **0.5.0** from Luma Repository. The repository add-on stays at 0.1.1.
+1. Update the **Luma video add-on** to **0.6.0** from Luma Repository. The repository add-on stays at 0.1.1.
 2. Install **CocoScrapers Module** from [CocoJoe's repository](https://cocojoe2411.github.io/), or **POV** from [kodifitzwell's repository](https://kodifitzwell.github.io/repo/). Either backend is sufficient; you can use both. Current **Magneto delegates to POV**, so a separate Magneto installation is not needed.
 3. Open **Tools → Provider Tools → Manage Provider Packages**, choose the installed backend and enable its torrent providers. Luma respects those switches. You can turn an entire backend off under **Tools → Open Settings Menu → Providers**. Provider-specific credentials, if required by an individual provider, belong in its own settings. Luma's TorBox key is used only by Luma's TorBox client.
 4. Choose **Search** on Luma's main menu and select movies or shows. Browse a matching show into its seasons and episodes. The visual dashboard's Search button also offers title search.
-5. Select a **TorBox-cached source**. The list shows filename hints for resolution, HDR, audio and size, sorted using the S90F playback preferences. A selected season pack is checked for the exact requested episode; multiple matching video files open a file chooser. Kodi then receives a fresh original-file playback URL.
+5. Select a **TorBox-cached source**. The full-screen picker shows release format hints and clearly labeled torrent totals, sorted using the S90F playback preferences. Long-press a result or use **Source information** for its full name, provider names, size origin and hint origins. A selected season pack is checked for the exact requested episode. Multiple matching files, or a single file with explicit format hints that contradict the release, open the file picker with actual file sizes. Automatic playstyle skips the extra format-confirmation step while enforcing filters. Kodi then receives a fresh original-file playback URL.
 
 Opening Continue watching or Next up searches providers when no ready local source exists. Library items also have **Find sources** in their context menu. Search is user initiated and disabled while a video is playing.
 

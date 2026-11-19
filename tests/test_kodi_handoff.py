@@ -115,6 +115,9 @@ class WindowXML:
     def setProperty(self, key, value):
         self.properties[key] = value
 
+    def setFocusId(self, control_id):
+        self.focus_id = control_id
+
     def close(self):
         self.close_calls += 1
 
@@ -211,7 +214,8 @@ class KodiHandoffTests(unittest.TestCase):
         self.db.put('library_torrents', [self.media])
         gui.Dialog.return_value.select.return_value = 0
         self.resolve_mock.side_effect = [SourceUnavailable('stale link'), 'https://cdn.test/second']
-        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'):
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'), \
+             patch('resources.lib.source_select.choose', return_value=0):
             app.play(10, self.media['key'])
         self.assertEqual(self.resolve_mock.call_count, 2)
         self.assertEqual(plugin.setResolvedUrl.call_args.args[2].path, 'https://cdn.test/second')
@@ -223,6 +227,20 @@ class KodiHandoffTests(unittest.TestCase):
             with self.assertRaises(ApiError):
                 app.play(10, self.media['key'])
         self.assertEqual(self.resolve_mock.call_count, 1)
+
+    def test_changed_file_metadata_is_filtered_again_before_native_playback(self):
+        from resources.lib import preferences
+        from resources.lib.resolution import SourceUnavailable
+        def resolve(api, source, media, **kwargs):
+            source['traits'] = traits('1080p.SDR.AAC')
+            return 'https://cdn.test/changed'
+        self.resolve_mock.side_effect = resolve
+        settings = dict(preferences.DEFAULTS, min_resolution=2160, retry_sources=False)
+        with patch.object(app.config, 'store', return_value=self.db), patch.object(app.config, 'setting', return_value='key'), \
+             patch.object(preferences, 'get', side_effect=lambda key: settings[key]):
+            with self.assertRaises(SourceUnavailable):
+                app.play(10, self.media['key'])
+        plugin.setResolvedUrl.assert_not_called()
 
     def test_failed_torrent_hash_is_excluded_from_replacement_search(self):
         from resources.lib import search

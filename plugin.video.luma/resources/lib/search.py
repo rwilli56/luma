@@ -7,12 +7,13 @@ import xbmcaddon
 import xbmcgui
 from . import config, providers
 from .catalog import Catalog
-from .media import flatten, identity
+from .media import flatten, identity, byte_size
 from .torbox import TorBox
 from .trakt import Trakt
 from .net import ApiError
 from . import filtering, preferences as prefs, search_rules
 from . import resolution
+from .source_select import choose as choose_source
 
 
 def provider_settings():
@@ -127,10 +128,11 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
         for source in (matched or {}).get('sources', []):
             hash_value = providers.infohash(source.get('hash'))
             name = source.get('release_name') or source.get('transfer_name') or source['name']
-            if source['ready'] and source['kind'] == 'torrents' and hash_value and hash_value not in (exclude_hashes or set()) and search_rules.release_matches(name, rules):
+            if source['ready'] and source['kind'] == 'torrents' and hash_value and hash_value not in (exclude_hashes or set()) and search_rules.release_matches(name, rules) and filtering.apply([source], media['type'], filters):
                 from .episodes import package
                 local_found[hash_value] = {'hash': hash_value, 'magnet': 'magnet:?xt=urn:btih:' + hash_value,
-                    'name': name, 'provider': 'TorBox library', 'size': source['size'], 'traits': source['traits'],
+                    'name': name, 'provider': 'TorBox library', 'size': source.get('torrent_size', 0),
+                    'file_size': source['size'], 'size_scope': 'torrent', 'size_origin': 'TorBox transfer total', 'traits': source['traits'],
                     'transfer_id': source['transfer_id'], 'package': package(name)}
     backends = [] if local_found else [b for b in providers.installed() if b['available'] and config.setting('provider_' + b['key']) != 'false']
     if not backends and not local_found:
@@ -138,7 +140,7 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
         return None
     dialog, monitor = xbmcgui.DialogProgress(), xbmc.Monitor()
     session = None
-    cache_key = 'source_cache:' + hashlib.sha256(json.dumps(['search-rules-1', rules, media.get('trakt'), media['title'], media.get('year'),
+    cache_key = 'source_cache:' + hashlib.sha256(json.dumps(['source-picker-1', rules, media.get('trakt'), media['title'], media.get('year'),
         media.get('season'), media.get('episode'), [(b['key'], b.get('version'), b.get('settings_revision')) for b in backends], prefs.get('scrape_packs')], sort_keys=True).encode()).hexdigest()
     found = local_found or (db.get(cache_key, max_age=900) if prefs.get('source_cache') else None)
     failures = []
@@ -156,7 +158,7 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
             found = {}
             while True:
                 for result in session.poll():
-                    found.setdefault(result['hash'], result)
+                    providers.merge_result(found, result)
                 if dialog.iscanceled() or monitor.abortRequested() or xbmc.Player().isPlaying():
                     return None
                 if session.finished:
@@ -184,7 +186,17 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
             if dialog.iscanceled() or monitor.abortRequested() or xbmc.Player().isPlaying():
                 return None
             hits.update(torbox.cached(hashes[start:start + 100]))
-        sources = [dict(found[h], size=hits[h].get('size') or found[h]['size'], **({'search_context': context} if context else {})) for h in hashes if h in hits]
+        sources = []
+        for hash_value in hashes:
+            if hash_value not in hits:
+                continue
+            source = dict(found[hash_value])
+            total = byte_size(hits[hash_value].get('size'))
+            if total:
+                source.update(size=total, size_scope='torrent', size_origin='TorBox cache total')
+            if context:
+                source['search_context'] = context
+            sources.append(source)
     finally:
         if session:
             session.stop.set()
@@ -198,10 +210,7 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
     automatic = prefs.get('movie_playstyle' if media['type'] == 'movie' else 'episode_playstyle') == 'auto'
     attempts = 0
     while sources and attempts < 3:
-        labels = [xbmcgui.ListItem(label='{} · {} · {} · {:.1f} GB · cached{}'.format(
-            s['traits']['resolution'] or '?', s['traits']['hdr'], s['traits']['audio'], s['size'] / 1e9,
-            ' · pack' if s.get('package') else ''), label2=s['name'] + ' · ' + s['provider']) for s in sources]
-        index = 0 if automatic else xbmcgui.Dialog().select('TorBox cached sources · preferred formats first', labels, useDetails=True)
+        index = 0 if automatic else choose_source(sources, media)
         if index < 0 or xbmc.Player().isPlaying():
             return None
         candidate = sources.pop(index)
@@ -216,7 +225,8 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
             if not items and media['type'] == 'episode' and prefs.get('pack_fallback'):
                 items = resolution.candidates(transfer, query, manual=True)
                 manual = bool(items)
-            items = [i for i in items if filtering.apply(i['sources'], media['type'], filters)]
+            by_file = {str(i['sources'][0]['file_id']): i for i in items}
+            items = [by_file[str(s['file_id'])] for s in filtering.apply([i['sources'][0] for i in items], media['type'], filters)]
             if not items:
                 raise resolution.SourceUnavailable('No matching playable file for this episode/movie in that torrent. Choose another source.')
         except resolution.SelectionCancelled:
@@ -231,9 +241,13 @@ def find_sources(media, exclude_hashes=None, prefer_library=False):
         finally:
             dialog.close()
         # Ambiguous names require an explicit file choice, even in automatic mode.
-        file_index = 0 if len(items) == 1 and not manual else xbmcgui.Dialog().select(
-            'Choose file for S{:02d} E{:02d}'.format(media['season'], media['episode']) if manual else 'Choose the video file',
-            [i['sources'][0].get('path', i['sources'][0]['name']) for i in items])
+        # Report the actual selected file's size/format, rather than pack metadata.
+        if context:
+            for item in items:
+                item['sources'][0]['search_context'] = context
+        changed = resolution.format_conflict(candidate, items[0]['sources'][0]) if len(items) == 1 else False
+        file_index = 0 if len(items) == 1 and not manual and (automatic or not changed) else choose_source(
+            [i['sources'][0] for i in items], media, stage='files')
         if file_index < 0:
             return None
         if manual and not xbmcgui.Dialog().yesno('Confirm episode file',

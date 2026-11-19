@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 from urllib.parse import parse_qs, urlsplit
-from .media import EPISODE, parse_name, traits
+from .media import EPISODE, parse_name, file_traits, traits, byte_size
 from . import episodes
 
 BACKENDS = (
@@ -119,14 +119,25 @@ def normalize(result, provider, media, pack=False):
             return None
     elif parsed['type'] == 'episode' or (parsed['year'] and media.get('year') and parsed['year'] != media['year']):
         return None
-    try:
-        # Both interfaces report numeric size in GiB, rather than bytes.
-        size = max(0, float(result.get('size') or 0)) * 1024 ** 3
-    except (ValueError, TypeError):
-        size = 0
+    # These interfaces return numeric size in GiB, with provider-dependent rounding.
+    size = byte_size(result.get('size'), 1024 ** 3)
+    hint = file_traits(name, str(result.get('quality') or ''))
+    hint['origins'] = {k: ('provider quality' if v == 'release' else 'release name') for k, v in hint['origins'].items()}
     return {'hash': hash_value, 'magnet': 'magnet:?xt=urn:btih:' + hash_value,
             'name': name[:1000], 'provider': provider, 'size': size,
-            'traits': traits(name + ' ' + str(result.get('quality', ''))), 'package': package}
+            'size_scope': 'torrent', 'size_origin': 'Provider estimate', 'traits': hint, 'package': package}
+
+
+def merge_result(found, source):
+    """Deduplicate hashes while keeping all reporting provider names."""
+    prior = found.get(source['hash'])
+    if prior is None:
+        found[source['hash']] = source
+        return
+    labels = sorted(set(prior.get('providers', [prior['provider']]) + source.get('providers', [source['provider']])))
+    prior.update(providers=labels, provider=' / '.join(labels))
+    if not prior.get('size') and source.get('size'):
+        prior['size'] = source['size']
 
 
 class ScrapeSession:

@@ -1,4 +1,4 @@
-from .media import flatten, merge_library, normalized
+from .media import flatten, merge_library, normalized, file_traits
 
 
 def refresh_library(db, torbox):
@@ -27,6 +27,8 @@ def library(db):
             binding = mappings.get('file:{}:{}:{}'.format(source['kind'], source['transfer_id'], source['file_id']), {})
             # File-level bindings prevent E03.mkv in two different packs sharing identity.
             entry = dict(item, sources=[dict(source)])
+            if source.get('path'):
+                entry['sources'][0]['traits'] = file_traits(source['path'], source.get('transfer_name', ''))
             same_hash = not binding.get('hash') or not source.get('hash') or binding['hash'].lower() == source['hash'].lower()
             if binding and binding.get('path') == source.get('path') and same_hash:
                 entry.update(binding['media'])

@@ -119,9 +119,8 @@ def play(handle, key):
     if not sources:
         raise ValueError('No ready sources match your Sort & Filter settings.')
     if len(sources) > 1 and prefs.get('movie_playstyle' if media['type'] == 'movie' else 'episode_playstyle') == 'select':
-        labels = [xbmcgui.ListItem(label='{} · {} · {} · {:.1f} GB'.format(
-            s['traits']['resolution'] or '?', s['traits']['hdr'], s['traits']['audio'], s['size'] / 1e9), label2=s['name']) for s in sources]
-        selected = xbmcgui.Dialog().select('Choose source · preferred formats first', labels, useDetails=True)
+        from .source_select import choose
+        selected = choose(sources, media, stage='files')
         if selected < 0:
             xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
             return
@@ -172,6 +171,9 @@ def play(handle, key):
         try:
             url = (Emby(config.setting('emby_url'), config.setting('emby_key'), config.setting('emby_user')).resolve(source)
                    if source['kind'] == 'emby' else resolve_selected(TorBox(config.setting('torbox_key')), source, media, check_link=prefs.get('verify_links')))
+            if not filtering.apply([source], media['type']):
+                url = None
+                raise SourceUnavailable('The refreshed file no longer matches your Sort & Filter settings. Choose another source.')
             break
         except (SourceUnavailable, ApiError) as exc:
             if account_failure(exc):
